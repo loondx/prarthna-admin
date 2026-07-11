@@ -4,12 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { StoreProvider, useStore } from '@/lib/store';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { Toaster } from '@/components/ui/kit';
 
-/** Inner header extracted so it can call useStore inside StoreProvider tree */
+/** Inner header — must live inside both StoreProvider and AuthProvider trees */
 function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; setCurrentRole: (r: string) => void }) {
   const pathname = usePathname();
   const { connected, apiLoading } = useStore();
+  const { session, logout } = useAuth();
 
   return (
     <header className="h-16 border-b border-[#EFE6DD] bg-white/80 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm">
@@ -17,7 +19,7 @@ function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; set
         <span className="text-[#8C7E77] font-medium text-sm">Pages</span>
         <span className="text-[#EFE6DD] text-xs">/</span>
         <span className="text-[#8C5A3C] font-semibold uppercase tracking-wider text-xs">
-          {pathname?.split('/').pop() || 'Dashboard'}
+          {pathname?.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard'}
         </span>
       </div>
 
@@ -36,9 +38,9 @@ function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; set
           </span>
         </div>
 
-        {/* Role Switcher */}
+        {/* Role Switcher (dev only) */}
         <div className="flex items-center gap-2 bg-[#FAF6F0] border border-[#EFE6DD] rounded-lg px-3 py-1.5 shadow-inner">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C7E77]">Mock Role:</label>
+          <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C7E77]">Role:</label>
           <select
             value={currentRole}
             onChange={(e) => setCurrentRole(e.target.value)}
@@ -52,9 +54,27 @@ function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; set
           </select>
         </div>
 
-        <button className="p-2 text-lg rounded-full hover:bg-[#FAF6F0] transition-colors text-[#8C7E77] hover:text-[#2D1E17]">
-          🔔
-        </button>
+        {/* Session User + Logout */}
+        {session && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-[#FAF6F0] border border-[#EFE6DD] rounded-lg px-3 py-1.5">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#8C5A3C] to-[#D99B26] flex items-center justify-center text-[9px] font-bold text-white">
+                {session.name[0]}
+              </div>
+              <span className="text-xs font-semibold text-[#2D1E17]">{session.name.split(' ')[0]}</span>
+              <span className="text-[9px] font-bold uppercase text-[#8C5A3C] bg-[#8C5A3C]/10 px-1.5 py-0.5 rounded-full">
+                {session.role.replace('_', ' ')}
+              </span>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign out"
+              className="p-2 text-sm rounded-lg hover:bg-red-50 hover:text-red-600 text-[#8C7E77] transition-all border border-transparent hover:border-red-100"
+            >
+              ⬡
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
@@ -75,20 +95,19 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Sankalp Templates', href: '/admin/sankalp', icon: '📝', allowedRoles: ['super_admin', 'editor'] },
   { name: 'Festivals', href: '/admin/festivals', icon: '🪔', allowedRoles: ['super_admin', 'editor'] },
   { name: 'Notifications', href: '/admin/notifications', icon: '🔔', allowedRoles: ['super_admin', 'editor'] },
+  { name: 'Admin Users', href: '/admin/admins', icon: '👤', allowedRoles: ['super_admin'] },
   { name: 'Settings', href: '/admin/settings', icon: '⚙️', allowedRoles: ['super_admin'] },
   { name: 'Audit Logs', href: '/admin/audit', icon: '📜', allowedRoles: ['super_admin'] },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // Role switcher state for client testing (starts as super_admin)
   const [currentRole, setCurrentRole] = useState<string>('super_admin');
 
   return (
-    <StoreProvider>
     <div className="flex min-h-screen bg-[#FAF6F0] text-[#2D1E17]">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-[#EFE6DD] bg-[#2D1E17] text-white flex flex-col justify-between shadow-lg">
+      <aside className="w-64 border-r border-[#EFE6DD] bg-[#2D1E17] text-white flex flex-col justify-between shadow-lg shrink-0">
         <div>
           <div className="h-16 flex items-center px-6 border-b border-white/10 gap-3">
             <span className="text-2xl">🕉️</span>
@@ -100,30 +119,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          <nav className="p-4 space-y-1">
+          <nav className="p-4 space-y-0.5">
             {NAVIGATION_ITEMS.map((item) => {
               const isAllowed = item.allowedRoles.includes(currentRole);
               const isActive = pathname === item.href;
 
               return (
-                <div key={item.name} className="relative">
+                <div key={item.name}>
                   {isAllowed ? (
                     <Link
                       href={item.href}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                         isActive
-                          ? 'bg-[#8C5A3C] text-white border border-[#8C5A3C]/20 shadow-md'
-                          : 'text-[#D9CFC7]/80 hover:text-white hover:bg-white/5 border border-transparent'
+                          ? 'bg-[#8C5A3C] text-white shadow-md'
+                          : 'text-[#D9CFC7]/80 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      <span className="text-lg">{item.icon}</span>
+                      <span className="text-base">{item.icon}</span>
                       {item.name}
                     </Link>
                   ) : (
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/20 cursor-not-allowed select-none">
-                      <span className="text-lg opacity-20">{item.icon}</span>
+                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-white/20 cursor-not-allowed select-none">
+                      <span className="text-base opacity-20">{item.icon}</span>
                       <span className="line-through">{item.name}</span>
-                      <span className="ml-auto text-[9px] uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded text-white/40 font-bold border border-white/10">
+                      <span className="ml-auto text-[9px] uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded text-white/30 font-bold border border-white/10">
                         Locked
                       </span>
                     </div>
@@ -134,29 +153,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#8C5A3C] to-[#D99B26] flex items-center justify-center font-bold text-white shadow-lg shadow-black/20">
-              PK
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-semibold text-white">Pankaj Kumar</p>
-              <p className="text-[10px] text-white/50 truncate">pankaj.kumar@prarthna.com</p>
-            </div>
-          </div>
-        </div>
+        {/* Sidebar Footer — shows real session user */}
+        <SidebarFooter />
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AdminHeader currentRole={currentRole} setCurrentRole={setCurrentRole} />
-
         <main className="flex-1 p-8 overflow-y-auto">
           {children}
         </main>
       </div>
       <Toaster />
     </div>
-    </StoreProvider>
+  );
+}
+
+function SidebarFooter() {
+  const { session, logout } = useAuth();
+  return (
+    <div className="p-4 border-t border-white/10 bg-black/20">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#8C5A3C] to-[#D99B26] flex items-center justify-center font-bold text-white shadow-lg text-sm shrink-0">
+          {session?.name?.[0] ?? 'A'}
+        </div>
+        <div className="overflow-hidden flex-1 min-w-0">
+          <p className="text-xs font-semibold text-white truncate">{session?.name ?? 'Admin'}</p>
+          <p className="text-[10px] text-white/50 truncate">{session?.email ?? ''}</p>
+        </div>
+        <button
+          onClick={logout}
+          title="Sign out"
+          className="text-white/30 hover:text-red-400 transition-colors text-sm shrink-0"
+        >
+          ↩
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <StoreProvider>
+        <AdminLayoutInner>{children}</AdminLayoutInner>
+      </StoreProvider>
+    </AuthProvider>
   );
 }
