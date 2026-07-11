@@ -181,12 +181,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     // Dynamic backend sync
     const syncBackend = async () => {
+      let isConnected = false;
       try {
         const res = await fetch('http://localhost:3001/api/v1/content/collections');
         if (res.ok) {
           const collectionsList = await res.json();
           if (Array.isArray(collectionsList)) {
-            // Map backend structures directly to the Admin UI
             const mapped = collectionsList.map((c: any) => ({
               id: c.id,
               title: c.title,
@@ -200,9 +200,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               ...prev,
               collections: mapped.length > 0 ? mapped : prev.collections
             }));
-            setConnected(true);
-            toast('Connected to NestJS API & synced PostgreSQL Collections!', 'success');
+            isConnected = true;
           }
+        }
+
+        const festRes = await fetch('http://localhost:3001/api/v1/festivals');
+        if (festRes.ok) {
+          const festList = await festRes.json();
+          if (Array.isArray(festList)) {
+            const mappedFest = festList.map((f: any) => ({
+              id: f.id,
+              name: f.name,
+              date: f.date,
+              category: f.category,
+              icon: f.icon,
+              status: f.status
+            }));
+
+            setData((prev) => ({
+              ...prev,
+              festivals: mappedFest
+            }));
+            isConnected = true;
+          }
+        }
+
+        if (isConnected) {
+          setConnected(true);
+          toast('Connected to NestJS API & synced PostgreSQL Collections and Festivals!', 'success');
         }
       } catch (err) {
         console.log('NestJS API not running or unreachable, falling back to LocalStorage mode.');

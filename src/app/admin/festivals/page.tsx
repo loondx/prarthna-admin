@@ -42,20 +42,41 @@ export default function FestivalsPage() {
     setEditing(null);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!form.name.trim() || !form.date) {
       toast('Name and date are required', 'error');
       return;
     }
     if (creating) {
-      update(
-        (d) => ({
-          ...d,
-          festivals: [...d.festivals, { ...form, id: `f${Date.now()}` }],
-        }),
-        { action: `Created festival "${form.name}"`, module: 'Festivals' },
-      );
-      toast(`Festival "${form.name}" created`);
+      try {
+        const res = await fetch('http://localhost:3001/api/v1/festivals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+        if (res.ok) {
+          const newFest = await res.json();
+          update(
+            (d) => ({
+              ...d,
+              festivals: [...d.festivals, newFest],
+            }),
+            { action: `Created festival "${form.name}"`, module: 'Festivals' },
+          );
+          toast(`Festival "${form.name}" created`);
+        } else {
+          toast('Failed to save festival to backend', 'error');
+        }
+      } catch (err) {
+        update(
+          (d) => ({
+            ...d,
+            festivals: [...d.festivals, { ...form, id: `f${Date.now()}` }],
+          }),
+          { action: `Created festival "${form.name}" (Local)`, module: 'Festivals' },
+        );
+        toast(`Festival "${form.name}" created locally`);
+      }
     } else if (editing) {
       update(
         (d) => ({
@@ -69,13 +90,28 @@ export default function FestivalsPage() {
     close();
   };
 
-  const remove = (f: FestivalItem) => {
+  const remove = async (f: FestivalItem) => {
     if (!confirm(`Delete "${f.name}"? This also removes its reminders.`)) return;
-    update(
-      (d) => ({ ...d, festivals: d.festivals.filter((x) => x.id !== f.id) }),
-      { action: `Deleted festival "${f.name}"`, module: 'Festivals' },
-    );
-    toast(`Festival "${f.name}" deleted`, 'info');
+    try {
+      const res = await fetch(`http://localhost:3001/api/v1/festivals/${f.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        update(
+          (d) => ({ ...d, festivals: d.festivals.filter((x) => x.id !== f.id) }),
+          { action: `Deleted festival "${f.name}"`, module: 'Festivals' },
+        );
+        toast(`Festival "${f.name}" deleted`);
+      } else {
+        toast('Failed to delete festival from backend', 'error');
+      }
+    } catch (err) {
+      update(
+        (d) => ({ ...d, festivals: d.festivals.filter((x) => x.id !== f.id) }),
+        { action: `Deleted festival "${f.name}" (Local)`, module: 'Festivals' },
+      );
+      toast(`Festival "${f.name}" deleted locally`, 'info');
+    }
   };
 
   return (
