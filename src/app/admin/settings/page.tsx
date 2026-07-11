@@ -5,10 +5,11 @@ import { useStore } from '@/lib/store';
 import { Field, PrimaryBtn, inputCls } from '@/components/ui/kit';
 
 export default function SettingsPage() {
-  const { data, ready, update, toast } = useStore();
+  const { data, ready, connected, update, toast } = useStore();
   const [mediaPath, setMediaPath] = useState(data.settings.mediaPath);
   const [morning, setMorning] = useState(data.settings.reminderMorning);
   const [evening, setEvening] = useState(data.settings.reminderEvening);
+  const [saving, setSaving] = useState(false);
 
   // Sync local form once persisted settings load from localStorage.
   useEffect(() => {
@@ -19,7 +20,8 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  const save = () => {
+  const save = async () => {
+    setSaving(true);
     update(
       (d) => ({
         ...d,
@@ -27,7 +29,22 @@ export default function SettingsPage() {
       }),
       { action: 'Updated application settings', module: 'Settings' },
     );
-    toast('Settings saved');
+
+    // Push reminder defaults to backend if connected
+    if (connected) {
+      try {
+        await fetch('http://localhost:3001/api/v1/users/reminders/system', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ morning, evening }),
+        });
+      } catch {
+        /* non-critical, already saved locally */
+      }
+    }
+
+    toast('Settings saved successfully');
+    setSaving(false);
   };
 
   return (
@@ -40,8 +57,8 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 space-y-6 shadow-sm animate-rise-in">
-        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3">
-          Firebase Credentials
+        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 flex items-center gap-2">
+          <span>🔐</span> Firebase Credentials
         </h2>
         <div className="space-y-4">
           <Field label="Firebase Project ID">
@@ -61,10 +78,13 @@ export default function SettingsPage() {
               className={`${inputCls} cursor-not-allowed opacity-70`}
             />
           </Field>
+          <p className="text-[10px] text-[#8C7E77] bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            ⚠️ Credentials are managed via environment variables. Edit <code>.env</code> to change them.
+          </p>
         </div>
 
-        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 pt-2">
-          Default Reminder Times
+        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 flex items-center gap-2">
+          <span>⏰</span> Default Reminder Times
         </h2>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Morning reminder">
@@ -84,9 +104,14 @@ export default function SettingsPage() {
             />
           </Field>
         </div>
+        {connected && (
+          <p className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+            ✅ Reminder defaults will also be synced to the PostgreSQL backend on save.
+          </p>
+        )}
 
-        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 pt-2">
-          Media Storage
+        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 flex items-center gap-2">
+          <span>📦</span> Media Storage
         </h2>
         <div className="space-y-4">
           <Field label="Provider">
@@ -106,7 +131,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex gap-4 pt-2">
-          <PrimaryBtn onClick={save}>Save Changes</PrimaryBtn>
+          <PrimaryBtn onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </PrimaryBtn>
         </div>
       </div>
     </div>

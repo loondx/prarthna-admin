@@ -18,6 +18,7 @@ export default function FestivalsPage() {
   const [editing, setEditing] = useState<FestivalItem | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(EMPTY);
+  const [deleting, setDeleting] = useState<FestivalItem | null>(null);
 
   const list = useMemo(
     () =>
@@ -90,8 +91,7 @@ export default function FestivalsPage() {
     close();
   };
 
-  const remove = async (f: FestivalItem) => {
-    if (!confirm(`Delete "${f.name}"? This also removes its reminders.`)) return;
+  const confirmRemove = async (f: FestivalItem) => {
     try {
       const res = await fetch(`http://localhost:3001/api/v1/festivals/${f.id}`, {
         method: 'DELETE',
@@ -157,7 +157,7 @@ export default function FestivalsPage() {
                     <div className="flex gap-2">
                       <GhostBtn onClick={() => openEdit(f)}>Edit</GhostBtn>
                       <button
-                        onClick={() => remove(f)}
+                        onClick={() => setDeleting(f)}
                         className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
                       >
                         Delete
@@ -235,6 +235,28 @@ export default function FestivalsPage() {
           <div className="flex justify-end gap-3 pt-2">
             <GhostBtn onClick={close}>Cancel</GhostBtn>
             <PrimaryBtn onClick={save}>{creating ? 'Create Festival' : 'Save Changes'}</PrimaryBtn>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal title="Delete Festival" open={!!deleting} onClose={() => setDeleting(null)}>
+        <div className="space-y-4">
+          <p className="text-[#8C7E77] text-xs">
+            Are you sure you want to delete <strong className="text-[#2D1E17]">"{deleting?.name}"</strong>? This will also remove any user reminders associated with it. This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <GhostBtn onClick={() => setDeleting(null)}>Cancel</GhostBtn>
+            <button
+              onClick={() => {
+                if (deleting) {
+                  confirmRemove(deleting);
+                  setDeleting(null);
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all"
+            >
+              Yes, Delete
+            </button>
           </div>
         </div>
       </Modal>

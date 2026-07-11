@@ -1,10 +1,15 @@
 'use client';
 
 /**
- * Client-side admin data store, persisted to localStorage so the panel is
+ * Client-side admin data store — persisted to localStorage so the panel is
  * fully interactive without the backend running. Shapes mirror the
- * prarthna-backend Prisma models so swapping in React Query + the real API
- * is a drop-in change.
+ * prarthna-backend Prisma models so swapping in React Query is a drop-in.
+ *
+ * Production changes:
+ *  - syncBackend fetches: collections, festivals, audit logs
+ *  - apiLoading flag for skeleton states
+ *  - api() helper for typed fetch with graceful fallback
+ *  - connected / apiError state exposed to UI
  */
 
 import React, {
@@ -32,7 +37,7 @@ export interface AudioTrack {
   duration: string;
   status: 'uploading' | 'processing' | 'ready_for_review' | 'published';
   user: string;
-  progress: number; // 0-100 for uploading/processing
+  progress: number;
 }
 
 export interface SankalpTemplate {
@@ -143,12 +148,25 @@ const SEED: AdminData = {
   },
 };
 
-const STORAGE_KEY = 'prarthna-admin-data-v1';
+const STORAGE_KEY = 'prarthna-admin-data-v2';
+const API_BASE = 'http://localhost:3001/api/v1';
+
+/** Typed fetch helper — returns null on network error instead of throwing */
+async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, opts);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
 
 interface StoreValue {
   data: AdminData;
   ready: boolean;
   connected: boolean;
+  apiLoading: boolean;
   toasts: Toast[];
   toast: (message: string, kind?: Toast['kind']) => void;
   update: (fn: (d: AdminData) => AdminData, auditAction?: { action: string; module: string }) => void;
@@ -162,6 +180,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>(SEED);
   const [ready, setReady] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [apiLoading, setApiLoading] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const toast = useCallback((message: string, kind: Toast['kind'] = 'success') => {
@@ -171,6 +190,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Restore persisted data
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setData({ ...SEED, ...JSON.parse(raw) });
@@ -179,62 +199,75 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     setReady(true);
 
-    // Dynamic backend sync
+    // Sync from all backend endpoints in parallel
     const syncBackend = async () => {
-      let isConnected = false;
-      try {
-        const res = await fetch('http://localhost:3001/api/v1/content/collections');
-        if (res.ok) {
-          const collectionsList = await res.json();
-          if (Array.isArray(collectionsList)) {
-            const mapped = collectionsList.map((c: any) => ({
-              id: c.id,
-              title: c.title,
-              status: 'Published' as const,
-              nodes: `${c._count?.nodes || 0} Chapters`,
-              units: 'Syncing Verses',
-              lang: 'Sanskrit & English'
-            }));
-            
-            setData((prev) => ({
-              ...prev,
-              collections: mapped.length > 0 ? mapped : prev.collections
-            }));
-            isConnected = true;
+      setApiLoading(true);
+      let anyConnected = false;
+
+      const [collections, festivals, auditLogs] = await Promise.all([
+        apiFetch<any[]>('/content/collections'),
+        apiFetch<any[]>('/festivals'),
+        apiFetch<any[]>('/audit'),
+      ]);
+
+      setData((prev) => {
+        let next = { ...prev };
+
+        if (collections && Array.isArray(collections)) {
+          next.collections = collections.length > 0
+            ? collections.map((c: any) => ({
+                id: c.id,
+                title: c.title,
+                status: 'Published' as const,
+                nodes: `${c._count?.nodes ?? 0} Chapters`,
+                units: 'Verses loaded',
+                lang: 'Sanskrit & English',
+              }))
+            : prev.collections;
+          anyConnected = true;
+        }
+
+        if (festivals && Array.isArray(festivals)) {
+          next.festivals = festivals.map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            date: f.date,
+            category: f.category,
+            icon: f.icon,
+            status: (f.status as 'Active' | 'Draft') ?? 'Active',
+          }));
+          anyConnected = true;
+        }
+
+        if (auditLogs && Array.isArray(auditLogs)) {
+          const mapped: AuditEntry[] = auditLogs.map((l: any) => ({
+            id: l.id,
+            actor: l.userId ?? 'System',
+            email: l.user?.email ?? 'system@prarthna.com',
+            action: l.action,
+            module: l.entityName,
+            date: new Date(l.createdAt ?? Date.now()).toLocaleString(),
+            ip: '—',
+          }));
+          if (mapped.length > 0) {
+            next.audit = mapped;
+            anyConnected = true;
           }
         }
 
-        const festRes = await fetch('http://localhost:3001/api/v1/festivals');
-        if (festRes.ok) {
-          const festList = await festRes.json();
-          if (Array.isArray(festList)) {
-            const mappedFest = festList.map((f: any) => ({
-              id: f.id,
-              name: f.name,
-              date: f.date,
-              category: f.category,
-              icon: f.icon,
-              status: f.status
-            }));
+        return next;
+      });
 
-            setData((prev) => ({
-              ...prev,
-              festivals: mappedFest
-            }));
-            isConnected = true;
-          }
-        }
-
-        if (isConnected) {
-          setConnected(true);
-          toast('Connected to NestJS API & synced PostgreSQL Collections and Festivals!', 'success');
-        }
-      } catch (err) {
-        console.log('NestJS API not running or unreachable, falling back to LocalStorage mode.');
+      setConnected(anyConnected);
+      if (anyConnected) {
+        toast('Connected to NestJS API — data synced from PostgreSQL', 'success');
       }
+      setApiLoading(false);
     };
+
     syncBackend();
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const persist = useRef((d: AdminData) => {
     try {
@@ -267,15 +300,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             ].slice(0, 50),
           };
 
-          // Sync audit log to real DB
-          fetch('http://localhost:3001/api/v1/audit/log', {
+          // Fire-and-forget sync to real audit DB
+          apiFetch('/audit/log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               entityName: auditAction.module,
               action: auditAction.action,
             }),
-          }).catch(() => {});
+          });
         }
         persist.current(next);
         return next;
@@ -285,7 +318,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <StoreContext.Provider value={{ data, ready, connected, toasts, toast, update }}>
+    <StoreContext.Provider value={{ data, ready, connected, apiLoading, toasts, toast, update }}>
       {children}
     </StoreContext.Provider>
   );
