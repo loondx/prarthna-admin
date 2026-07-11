@@ -148,6 +148,7 @@ const STORAGE_KEY = 'prarthna-admin-data-v1';
 interface StoreValue {
   data: AdminData;
   ready: boolean;
+  connected: boolean;
   toasts: Toast[];
   toast: (message: string, kind?: Toast['kind']) => void;
   update: (fn: (d: AdminData) => AdminData, auditAction?: { action: string; module: string }) => void;
@@ -160,7 +161,14 @@ let toastSeq = 0;
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>(SEED);
   const [ready, setReady] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const toast = useCallback((message: string, kind: Toast['kind'] = 'success') => {
+    const id = ++toastSeq;
+    setToasts((t) => [...t, { id, message, kind }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+  }, []);
 
   useEffect(() => {
     try {
@@ -170,7 +178,38 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       /* corrupted storage — fall back to seed */
     }
     setReady(true);
-  }, []);
+
+    // Dynamic backend sync
+    const syncBackend = async () => {
+      try {
+        const res = await fetch('http://localhost:3001/api/v1/content/collections');
+        if (res.ok) {
+          const collectionsList = await res.json();
+          if (Array.isArray(collectionsList)) {
+            // Map backend structures directly to the Admin UI
+            const mapped = collectionsList.map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              status: 'Published' as const,
+              nodes: `${c._count?.nodes || 0} Chapters`,
+              units: 'Syncing Verses',
+              lang: 'Sanskrit & English'
+            }));
+            
+            setData((prev) => ({
+              ...prev,
+              collections: mapped.length > 0 ? mapped : prev.collections
+            }));
+            setConnected(true);
+            toast('Connected to NestJS API & synced PostgreSQL Collections!', 'success');
+          }
+        }
+      } catch (err) {
+        console.log('NestJS API not running or unreachable, falling back to LocalStorage mode.');
+      }
+    };
+    syncBackend();
+  }, [toast]);
 
   const persist = useRef((d: AdminData) => {
     try {
@@ -179,12 +218,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       /* storage full/unavailable — state still works in-memory */
     }
   });
-
-  const toast = useCallback((message: string, kind: Toast['kind'] = 'success') => {
-    const id = ++toastSeq;
-    setToasts((t) => [...t, { id, message, kind }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
-  }, []);
 
   const update = useCallback(
     (fn: (d: AdminData) => AdminData, auditAction?: { action: string; module: string }) => {
@@ -208,6 +241,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               ...next.audit,
             ].slice(0, 50),
           };
+
+          // Sync audit log to real DB
+          fetch('http://localhost:3001/api/v1/audit/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              entityName: auditAction.module,
+              action: auditAction.action,
+            }),
+          }).catch(() => {});
         }
         persist.current(next);
         return next;
@@ -217,7 +260,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <StoreContext.Provider value={{ data, ready, toasts, toast, update }}>
+    <StoreContext.Provider value={{ data, ready, connected, toasts, toast, update }}>
       {children}
     </StoreContext.Provider>
   );

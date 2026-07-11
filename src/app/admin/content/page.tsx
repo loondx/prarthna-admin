@@ -16,6 +16,24 @@ export default function ContentLibraryPage() {
       toast('Collection title is required', 'error');
       return;
     }
+
+    // Sync to real database API
+    fetch('http://localhost:3001/api/v1/content/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: form.title.trim(),
+        type: 'SCRIPTURE',
+        description: `Imported via Admin Panel: ${form.nodes || '0'} chapters, ${form.units || '0'} verses`,
+      }),
+    })
+      .then((res) => {
+        if (res.ok) {
+          toast(`"${form.title.trim()}" saved to PostgreSQL!`, 'success');
+        }
+      })
+      .catch(() => {});
+
     update(
       (d) => ({
         ...d,
