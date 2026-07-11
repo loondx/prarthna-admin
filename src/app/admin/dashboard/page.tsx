@@ -1,0 +1,173 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { useStore } from '@/lib/store';
+import { DonutChart, LineChart, StatusBadge } from '@/components/ui/kit';
+
+const USER_GROWTH = [
+  { label: '1 Jun', value: 8200 },
+  { label: '8 Jun', value: 9100 },
+  { label: '15 Jun', value: 9800 },
+  { label: '22 Jun', value: 10900 },
+  { label: '29 Jun', value: 11700 },
+  { label: '6 Jul', value: 12460 },
+  { label: '11 Jul', value: 12840 },
+];
+
+export default function DashboardPage() {
+  const { data } = useStore();
+
+  const published = data.collections.filter((c) => c.status === 'Published').length;
+  const audioPublished = data.audio.filter((a) => a.status === 'published').length;
+  const activeFestivals = data.festivals.filter((f) => f.status === 'Active').length;
+  const scheduled = data.notifications.filter((n) => n.status === 'Scheduled').length;
+
+  const stats = [
+    { name: 'Total Users', value: '12,840', change: '+14% from last week', icon: '👤', color: 'from-[#8C5A3C] to-[#D99B26]', href: '/admin/dashboard' },
+    { name: 'Published Collections', value: `${published}/${data.collections.length}`, change: `${data.collections.length - published} in draft`, icon: '📚', color: 'from-[#4E785A] to-[#6A8F74]', href: '/admin/content' },
+    { name: 'Audio Tracks Live', value: `${audioPublished}`, change: `${data.audio.length - audioPublished} in pipeline`, icon: '🎙️', color: 'from-[#E05B35] to-[#8C5A3C]', href: '/admin/audio' },
+    { name: 'Active Festivals', value: `${activeFestivals}`, change: `${scheduled} notification${scheduled === 1 ? '' : 's'} scheduled`, icon: '🪔', color: 'from-[#8C5A3C] to-[#A67C52]', href: '/admin/festivals' },
+  ];
+
+  const upcoming = [...data.festivals]
+    .filter((f) => new Date(f.date) >= new Date())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 4);
+
+  return (
+    <div className="space-y-8">
+      {/* Welcome Banner */}
+      <div className="animate-rise-in rounded-2xl bg-gradient-to-r from-[#8C5A3C] via-[#9E6F4D] to-[#D99B26] p-8 shadow-xl shadow-[#8C5A3C]/10 relative overflow-hidden">
+        <div className="absolute right-0 bottom-0 top-0 opacity-10 text-[180px] pointer-events-none font-bold text-white">
+          🕉️
+        </div>
+        <div className="relative z-10 max-w-xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Welcome to Prarthna Admin</h1>
+          <p className="text-[#FAF6F0] text-sm leading-relaxed opacity-90">
+            Manage scriptures, audio pipeline, sankalp templates, festivals, and notifications from one dashboard.
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stagger">
+        {stats.map((stat) => (
+          <Link
+            key={stat.name}
+            href={stat.href}
+            className="bg-white border border-[#EFE6DD] rounded-2xl p-6 transition-all duration-300 hover:border-[#8C5A3C]/40 hover:shadow-md hover:-translate-y-0.5 block"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[#8C7E77] text-xs font-semibold uppercase tracking-wider">{stat.name}</span>
+              <span className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${stat.color} flex items-center justify-center text-white text-md shadow-md`}>
+                {stat.icon}
+              </span>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl font-bold tracking-tight text-[#2D1E17]">{stat.value}</span>
+              <p className="text-xs text-[#8C7E77] mt-1.5">{stat.change}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 stagger">
+        <div className="lg:col-span-2 bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-[#2D1E17] flex items-center gap-2">
+              <span>📈</span> User Growth
+            </h2>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              +14% this week
+            </span>
+          </div>
+          <LineChart points={USER_GROWTH} />
+        </div>
+
+        <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-[#2D1E17] mb-4 flex items-center gap-2">
+            <span>🧭</span> Content Mix
+          </h2>
+          <DonutChart
+            slices={[
+              { label: 'Verses', value: 700, color: '#8C5A3C' },
+              { label: 'Audio', value: 320, color: '#D99B26' },
+              { label: 'Mantras', value: 108, color: '#4E785A' },
+              { label: 'Notes', value: 96, color: '#E05B35' },
+            ]}
+          />
+          <p className="text-[11px] text-[#8C7E77] mt-4 leading-relaxed">
+            Bhagavad Gita is fully seeded. Audio coverage is at 46% of published verses.
+          </p>
+        </div>
+      </div>
+
+      {/* Upcoming festivals + audit */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 stagger">
+        <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-[#2D1E17] flex items-center gap-2">
+              <span>🪔</span> Upcoming Festivals
+            </h2>
+            <Link href="/admin/festivals" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
+              Manage
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {upcoming.map((f) => {
+              const days = Math.ceil((new Date(f.date).getTime() - Date.now()) / 86400000);
+              return (
+                <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-[#FAF6F0]/60 border border-[#EFE6DD]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{f.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-[#2D1E17]">{f.name}</p>
+                      <p className="text-[10px] text-[#8C7E77]">{f.date}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#8C5A3C] bg-[#8C5A3C]/10 px-2 py-0.5 rounded-full">
+                    {days <= 0 ? 'Today' : `in ${days}d`}
+                  </span>
+                </div>
+              );
+            })}
+            {upcoming.length === 0 && (
+              <p className="text-xs text-[#8C7E77]">No upcoming festivals configured.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-[#2D1E17] flex items-center gap-2">
+              <span>📜</span> Recent Activity
+            </h2>
+            <Link href="/admin/audit" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {data.audit.slice(0, 5).map((a) => (
+              <div key={a.id} className="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF6F0]/50 border border-[#EFE6DD] hover:border-[#8C5A3C]/30 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 shrink-0 rounded-full bg-[#FAF6F0] flex items-center justify-center border border-[#EFE6DD] text-[#8C5A3C] text-xs font-semibold">
+                    {a.actor[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-[#2D1E17] truncate">
+                      <span className="font-semibold">{a.actor}</span> — {a.action}
+                    </p>
+                    <span className="text-[10px] text-[#8C7E77]">{a.date}</span>
+                  </div>
+                </div>
+                <StatusBadge status={a.module} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,114 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useStore } from '@/lib/store';
+import { Field, PrimaryBtn, inputCls } from '@/components/ui/kit';
+
+export default function SettingsPage() {
+  const { data, ready, update, toast } = useStore();
+  const [mediaPath, setMediaPath] = useState(data.settings.mediaPath);
+  const [morning, setMorning] = useState(data.settings.reminderMorning);
+  const [evening, setEvening] = useState(data.settings.reminderEvening);
+
+  // Sync local form once persisted settings load from localStorage.
+  useEffect(() => {
+    if (!ready) return;
+    setMediaPath(data.settings.mediaPath);
+    setMorning(data.settings.reminderMorning);
+    setEvening(data.settings.reminderEvening);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  const save = () => {
+    update(
+      (d) => ({
+        ...d,
+        settings: { mediaPath, reminderMorning: morning, reminderEvening: evening },
+      }),
+      { action: 'Updated application settings', module: 'Settings' },
+    );
+    toast('Settings saved');
+  };
+
+  return (
+    <div className="space-y-6 max-w-xl">
+      <div>
+        <h1 className="text-2xl font-bold text-[#2D1E17]">General Settings</h1>
+        <p className="text-[#8C7E77] text-xs mt-1">
+          Global application keys, reminder defaults, and storage locations.
+        </p>
+      </div>
+
+      <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 space-y-6 shadow-sm animate-rise-in">
+        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3">
+          Firebase Credentials
+        </h2>
+        <div className="space-y-4">
+          <Field label="Firebase Project ID">
+            <input
+              type="text"
+              defaultValue="prarthna-f831d"
+              disabled
+              className={`${inputCls} cursor-not-allowed opacity-70`}
+            />
+          </Field>
+          <Field label="Service Account Private Key (Encrypted)">
+            <input
+              type="password"
+              value="••••••••••••••••••••••••••••••••"
+              disabled
+              readOnly
+              className={`${inputCls} cursor-not-allowed opacity-70`}
+            />
+          </Field>
+        </div>
+
+        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 pt-2">
+          Default Reminder Times
+        </h2>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Morning reminder">
+            <input
+              type="time"
+              className={inputCls}
+              value={morning}
+              onChange={(e) => setMorning(e.target.value)}
+            />
+          </Field>
+          <Field label="Evening reminder">
+            <input
+              type="time"
+              className={inputCls}
+              value={evening}
+              onChange={(e) => setEvening(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        <h2 className="text-sm font-bold text-[#2D1E17] border-b border-[#EFE6DD] pb-3 pt-2">
+          Media Storage
+        </h2>
+        <div className="space-y-4">
+          <Field label="Provider">
+            <select className={inputCls}>
+              <option>Local VPS filesystem (Staging/MVP)</option>
+              <option disabled>Amazon S3 / Cloudflare R2 (Disabled)</option>
+            </select>
+          </Field>
+          <Field label="Local mount path">
+            <input
+              type="text"
+              className={inputCls}
+              value={mediaPath}
+              onChange={(e) => setMediaPath(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        <div className="flex gap-4 pt-2">
+          <PrimaryBtn onClick={save}>Save Changes</PrimaryBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
