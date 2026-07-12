@@ -1,5 +1,4 @@
 import React, { Suspense } from 'react';
-import { AuthProvider } from '@/lib/auth';
 
 export const metadata = {
   title: 'Sign In · Prarthna Admin',
@@ -7,11 +6,5 @@ export const metadata = {
 };
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <Suspense>
-        {children}
-      </Suspense>
-    </AuthProvider>
-  );
+  return <Suspense>{children}</Suspense>;
 }

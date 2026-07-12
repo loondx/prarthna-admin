@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useStore, Collection } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, inputCls } from '@/components/ui/kit';
 
@@ -77,12 +78,9 @@ export default function ContentLibraryPage() {
               </div>
             </div>
 
-            <GhostBtn
-              className="w-full mt-6"
-              onClick={() => toast(`Node editor for "${c.title}" opens in the full build`, 'info')}
-            >
-              Manage Nodes
-            </GhostBtn>
+            <Link href={`/content/${c.id}`} className="block mt-6">
+              <GhostBtn className="w-full">Manage Chapters & Verses</GhostBtn>
+            </Link>
           </div>
         ))}
       </div>

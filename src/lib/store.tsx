@@ -97,6 +97,27 @@ export interface ContentUnitOption {
   verseNumber: string;
 }
 
+export interface ChapterNode {
+  id: string;
+  title: string;
+  order: number;
+}
+
+export interface VerseUnit {
+  id: string;
+  verseNumber: string;
+  contentSanskrit: string;
+  transliteration: string;
+  contentEnglish: string;
+}
+
+export interface VerseInput {
+  verseNumber: string;
+  contentSanskrit: string;
+  transliteration?: string;
+  contentEnglish: string;
+}
+
 export interface ContentNodeOption {
   id: string;
   title: string;
@@ -206,6 +227,14 @@ interface StoreValue {
     setAudioStatus: (id: string, status: string) => Promise<boolean>;
     listNodes: (collectionId: string) => Promise<ContentNodeOption[]>;
     listUnits: (nodeId: string) => Promise<ContentUnitOption[]>;
+    getChapters: (collectionId: string) => Promise<ChapterNode[]>;
+    getVerses: (nodeId: string) => Promise<VerseUnit[]>;
+    createChapter: (collectionId: string, title: string, order: number) => Promise<boolean>;
+    updateChapter: (id: string, input: { title?: string; order?: number }) => Promise<boolean>;
+    deleteChapter: (id: string) => Promise<boolean>;
+    createVerse: (nodeId: string, input: VerseInput) => Promise<boolean>;
+    updateVerse: (id: string, input: VerseInput) => Promise<boolean>;
+    deleteVerse: (id: string) => Promise<boolean>;
   };
 }
 
@@ -355,6 +384,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const detail = await apiGet<any>(`/content/nodes/${nodeId}`);
       return (detail.units ?? []).map((u: any) => ({ id: u.id, verseNumber: u.verseNumber }));
     },
+    getChapters: async (collectionId) => {
+      const detail = await apiGet<any>(`/content/collections/${collectionId}`);
+      return (detail.nodes ?? []).map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        order: n.order,
+      }));
+    },
+    getVerses: async (nodeId) => {
+      const detail = await apiGet<any>(`/content/nodes/${nodeId}`);
+      return (detail.units ?? []).map((u: any) => ({
+        id: u.id,
+        verseNumber: u.verseNumber,
+        contentSanskrit: u.contentSanskrit ?? '',
+        transliteration: u.transliteration ?? '',
+        contentEnglish: u.contentEnglish ?? '',
+      }));
+    },
+    createChapter: (collectionId, title, order) =>
+      run(
+        () => apiPost('/content/nodes', { collectionId, title, order }),
+        `Chapter "${title}" added`,
+      ),
+    updateChapter: (id, input) =>
+      run(() => apiPatch(`/content/nodes/${id}`, input), 'Chapter updated'),
+    deleteChapter: (id) =>
+      run(() => apiDelete(`/content/nodes/${id}`), 'Chapter deleted'),
+    createVerse: (nodeId, input) =>
+      run(
+        () => apiPost('/content/units', { nodeId, ...input }),
+        `${input.verseNumber} added`,
+      ),
+    updateVerse: (id, input) =>
+      run(() => apiPatch(`/content/units/${id}`, input), 'Verse updated'),
+    deleteVerse: (id) =>
+      run(() => apiDelete(`/content/units/${id}`), 'Verse deleted'),
   };
 
   return (
