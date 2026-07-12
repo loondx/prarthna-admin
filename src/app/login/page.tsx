@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (!loading && session) {
@@ -24,6 +25,7 @@ export default function LoginPage() {
   }, [session, loading, router, searchParams]);
 
   useEffect(() => {
+    setMounted(true);
     emailRef.current?.focus();
   }, []);
 
@@ -44,7 +46,7 @@ export default function LoginPage() {
     }
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1A100A] via-[#2D1E17] to-[#4A2E1E] flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-amber-400/30 border-t-amber-400 animate-spin" />
