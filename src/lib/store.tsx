@@ -212,6 +212,8 @@ interface StoreValue {
   refresh: () => Promise<void>;
   actions: {
     createCollection: (input: { title: string; type: string; description?: string }) => Promise<boolean>;
+    updateCollection: (id: string, input: { title?: string; type?: string; description?: string }) => Promise<boolean>;
+    deleteCollection: (id: string) => Promise<boolean>;
     setCollectionStatus: (id: string, status: 'Published' | 'Draft') => Promise<boolean>;
     createFestival: (input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
     updateFestival: (id: string, input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
@@ -222,6 +224,8 @@ interface StoreValue {
     createNotification: (input: { title: string; category: string; audience: string; status: 'Sent' | 'Scheduled'; sentAt?: string }) => Promise<boolean>;
     deleteNotification: (id: string) => Promise<boolean>;
     saveShloka: (input: ShlokaSchedule) => Promise<boolean>;
+    getShlokas: () => Promise<ShlokaSchedule[]>;
+    deleteShloka: (date: string) => Promise<boolean>;
     saveSettings: (value: AdminData['settings']) => Promise<boolean>;
     uploadAudio: (file: File, contentUnitId: string, title?: string) => Promise<boolean>;
     setAudioStatus: (id: string, status: string) => Promise<boolean>;
@@ -344,6 +348,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const actions: StoreValue['actions'] = {
     createCollection: (input) =>
       run(() => apiPost('/content/collections', input), `Collection "${input.title}" created`),
+    updateCollection: (id, input) =>
+      run(() => apiPatch(`/content/collections/${id}`, input), 'Collection updated'),
+    deleteCollection: (id) =>
+      run(() => apiDelete(`/content/collections/${id}`), 'Collection deleted'),
     setCollectionStatus: (id, status) =>
       run(() => apiPatch(`/content/collections/${id}/status`, { status })),
     createFestival: (input) =>
@@ -365,6 +373,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       run(() => apiDelete(`/notifications/${id}`), 'Notification removed'),
     saveShloka: (input) =>
       run(() => apiPut('/shloka', input), `Daily shloka scheduled for ${input.date}`),
+    getShlokas: async () => {
+      const rows = await apiGet<any[]>('/shloka');
+      return rows.map((s) => ({
+        date: s.date,
+        reference: s.reference,
+        sanskrit: s.sanskrit,
+        translation: s.translation,
+      }));
+    },
+    deleteShloka: (date) =>
+      run(() => apiDelete(`/shloka/${date}`), `Removed shloka for ${date}`),
     saveSettings: (value) =>
       run(() => apiPut('/settings', { value }), 'Settings saved'),
     uploadAudio: (file, contentUnitId, title) => {

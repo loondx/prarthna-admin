@@ -1,37 +1,81 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useStore, Collection } from '@/lib/store';
-import { Field, GhostBtn, Modal, PrimaryBtn, inputCls } from '@/components/ui/kit';
+import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, inputCls } from '@/components/ui/kit';
 
 const EMPTY = { title: '', type: 'SCRIPTURE', description: '' };
+const TYPES = ['SCRIPTURE', 'PRAYER'];
 
 export default function ContentLibraryPage() {
-  const { data, actions, toast } = useStore();
-  const [open, setOpen] = useState(false);
+  const { data, actions, toast, apiLoading } = useStore();
+  const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Collection | null>(null);
+  const [deleting, setDeleting] = useState<Collection | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
 
-  const importCollection = async () => {
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return data.collections;
+    return data.collections.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.units.toLowerCase().includes(q) ||
+        c.lang.toLowerCase().includes(q),
+    );
+  }, [data.collections, query]);
+
+  const openCreate = () => {
+    setForm(EMPTY);
+    setCreating(true);
+  };
+
+  const openEdit = (c: Collection) => {
+    setForm({ title: c.title, type: c.units, description: c.lang });
+    setEditing(c);
+  };
+
+  const closeForm = () => {
+    setCreating(false);
+    setEditing(null);
+  };
+
+  const save = async () => {
     if (!form.title.trim()) {
       toast('Collection title is required', 'error');
       return;
     }
-    const ok = await actions.createCollection({
-      title: form.title.trim(),
-      type: form.type,
-      description: form.description || undefined,
-    });
-    if (ok) {
-      setOpen(false);
-      setForm(EMPTY);
-    }
+    setSaving(true);
+    const ok = creating
+      ? await actions.createCollection({
+          title: form.title.trim(),
+          type: form.type,
+          description: form.description || undefined,
+        })
+      : editing
+        ? await actions.updateCollection(editing.id, {
+            title: form.title.trim(),
+            type: form.type,
+            description: form.description,
+          })
+        : false;
+    setSaving(false);
+    if (ok) closeForm();
   };
 
   const toggleStatus = async (c: Collection) => {
     const next = c.status === 'Published' ? 'Draft' : 'Published';
     const ok = await actions.setCollectionStatus(c.id, next);
     if (ok) toast(`"${c.title}" is now ${next.toLowerCase()}`);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    const ok = await actions.deleteCollection(deleting.id);
+    setDeleting(null);
   };
 
   return (
@@ -43,14 +87,47 @@ export default function ContentLibraryPage() {
             Configure and manage scriptures, chapters, and shloka translations.
           </p>
         </div>
-        <PrimaryBtn onClick={() => setOpen(true)}>+ Import Collection</PrimaryBtn>
+        <PrimaryBtn onClick={openCreate}>+ New Collection</PrimaryBtn>
       </div>
 
+      <div className="max-w-sm">
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Search collections by title, type, or description…"
+        />
+      </div>
+
+      {/* Loading skeleton */}
+      {apiLoading && data.collections.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-52 rounded-2xl bg-white border border-[#EFE6DD] animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {/* Empty states */}
+      {!apiLoading && data.collections.length === 0 && (
+        <div className="bg-white border border-[#EFE6DD] rounded-2xl p-12 text-center">
+          <span className="text-3xl">📚</span>
+          <p className="text-sm text-[#8C7E77] mt-3">
+            No collections yet. Create your first scripture or prayer collection.
+          </p>
+          <PrimaryBtn className="mt-4" onClick={openCreate}>+ New Collection</PrimaryBtn>
+        </div>
+      )}
+      {!apiLoading && data.collections.length > 0 && filtered.length === 0 && (
+        <div className="bg-white border border-[#EFE6DD] rounded-2xl p-10 text-center text-sm text-[#8C7E77]">
+          No collections match “{query}”.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger">
-        {data.collections.map((c) => (
+        {filtered.map((c) => (
           <div
             key={c.id}
-            className="bg-white border border-[#EFE6DD] rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:border-[#8C5A3C]/40 hover:shadow-md hover:-translate-y-0.5"
+            className="bg-white border border-[#EFE6DD] rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:border-[#8C5A3C]/40 hover:shadow-md hover:-translate-y-0.5 flex flex-col"
           >
             <button
               onClick={() => toggleStatus(c)}
@@ -65,27 +142,41 @@ export default function ContentLibraryPage() {
             </button>
             <span className="text-3xl">📚</span>
             <h2 className="text-lg font-bold text-[#2D1E17] mt-4">{c.title}</h2>
-            <p className="text-[#8C7E77] text-xs mt-1">{c.lang}</p>
+            <p className="text-[#8C7E77] text-xs mt-1 flex-1">{c.lang || 'No description'}</p>
 
             <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-[#EFE6DD]">
               <div>
-                <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Nodes</span>
+                <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Chapters</span>
                 <p className="text-sm font-semibold text-[#2D1E17]">{c.nodes}</p>
               </div>
               <div>
-                <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Units</span>
+                <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Type</span>
                 <p className="text-sm font-semibold text-[#2D1E17]">{c.units}</p>
               </div>
             </div>
 
             <Link href={`/content/${c.id}`} className="block mt-6">
-              <GhostBtn className="w-full">Manage Chapters & Verses</GhostBtn>
+              <GhostBtn className="w-full">Manage Chapters &amp; Verses</GhostBtn>
             </Link>
+            <div className="flex gap-2 mt-2">
+              <GhostBtn className="flex-1" onClick={() => openEdit(c)}>Edit</GhostBtn>
+              <button
+                onClick={() => setDeleting(c)}
+                className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-      <Modal title="Import Collection" open={open} onClose={() => setOpen(false)}>
+      {/* Create / Edit modal */}
+      <Modal
+        title={creating ? 'New Collection' : 'Edit Collection'}
+        open={creating || !!editing}
+        onClose={closeForm}
+      >
         <div className="space-y-4">
           <Field label="Collection title *">
             <input
@@ -101,7 +192,7 @@ export default function ContentLibraryPage() {
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
             >
-              {['SCRIPTURE', 'PRAYER'].map((t) => (
+              {TYPES.map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
@@ -115,8 +206,29 @@ export default function ContentLibraryPage() {
             />
           </Field>
           <div className="flex justify-end gap-3 pt-2">
-            <GhostBtn onClick={() => setOpen(false)}>Cancel</GhostBtn>
-            <PrimaryBtn onClick={importCollection}>Import as Draft</PrimaryBtn>
+            <GhostBtn onClick={closeForm}>Cancel</GhostBtn>
+            <PrimaryBtn onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : creating ? 'Create as Draft' : 'Save Changes'}
+            </PrimaryBtn>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete confirmation */}
+      <Modal title="Delete Collection" open={!!deleting} onClose={() => setDeleting(null)}>
+        <div className="space-y-4">
+          <p className="text-[#8C7E77] text-xs">
+            Delete <strong className="text-[#2D1E17]">&ldquo;{deleting?.title}&rdquo;</strong> and
+            all of its chapters and verses? Readers will no longer see this collection in the app.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <GhostBtn onClick={() => setDeleting(null)}>Cancel</GhostBtn>
+            <button
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all"
+            >
+              Yes, Delete
+            </button>
           </div>
         </div>
       </Modal>

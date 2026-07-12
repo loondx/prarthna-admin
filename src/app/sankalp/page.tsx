@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useStore, SankalpTemplate } from '@/lib/store';
-import { Field, GhostBtn, Modal, PrimaryBtn, inputCls } from '@/components/ui/kit';
+import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, inputCls } from '@/components/ui/kit';
 
 const EMPTY: Omit<SankalpTemplate, 'id'> = {
   title: '',
@@ -23,6 +23,18 @@ export default function SankalpTemplatesPage() {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<SankalpTemplate | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return data.sankalps;
+    return data.sankalps.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.target.toLowerCase().includes(q) ||
+        t.difficulty.toLowerCase().includes(q),
+    );
+  }, [data.sankalps, query]);
 
   const close = () => {
     setCreating(false);
@@ -66,8 +78,16 @@ export default function SankalpTemplatesPage() {
         </PrimaryBtn>
       </div>
 
+      <div className="max-w-sm">
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Search templates by title, goal, or difficulty…"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger">
-        {data.sankalps.map((t) => (
+        {filtered.map((t) => (
           <div
             key={t.id}
             className="bg-white border border-[#EFE6DD] rounded-2xl p-6 transition-all duration-300 hover:border-[#8C5A3C]/40 hover:shadow-md hover:-translate-y-0.5 flex flex-col"
@@ -112,6 +132,11 @@ export default function SankalpTemplatesPage() {
         {data.sankalps.length === 0 && (
           <div className="col-span-3 py-16 text-center text-[#8C7E77] text-sm">
             No sankalp templates yet. Create your first one above.
+          </div>
+        )}
+        {data.sankalps.length > 0 && filtered.length === 0 && (
+          <div className="col-span-3 py-16 text-center text-[#8C7E77] text-sm">
+            No templates match “{query}”.
           </div>
         )}
       </div>

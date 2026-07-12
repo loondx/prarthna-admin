@@ -9,7 +9,7 @@ prarthna-admin/
 ├── src/
 │   ├── app/               # Next.js App Router — one dir per section
 │   │   ├── dashboard/     # Live statistics from /admin/stats
-│   │   ├── content/       # Collections (create, publish/unpublish)
+│   │   ├── content/       # Collections CRUD (create/edit/delete/publish) + chapter & verse manager
 │   │   ├── audio/         # Real uploads → /content/media/upload + review queue
 │   │   ├── shloka/ sankalp/ festivals/ notifications/ admins/ settings/ audit/
 │   │   ├── layout.tsx     # Navigation sidebar layout
@@ -50,6 +50,26 @@ Open `http://localhost:3000` to preview the interface.
 ```bash
 pnpm build
 ```
+
+---
+
+## Production Deployment
+
+The panel is a stateless Next.js app that talks to the API over HTTPS.
+
+1. **Environment** — set `NEXT_PUBLIC_API_URL` to the API's public base URL (no trailing slash,
+   no `/api/v1`). It is inlined at build time, so build after setting it.
+2. **Build & run**
+   ```bash
+   pnpm install --frozen-lockfile
+   pnpm build
+   pnpm start            # serves the optimized production build (default :3000)
+   ```
+3. **Type/lint gate** — `pnpm lint` runs `tsc --noEmit`; the build fails on type errors.
+4. **CORS** — the API's `CORS_ORIGINS` must include this panel's public origin.
+5. **Auth** — a single admin account type; the JWT is stored in a `SameSite=Strict` cookie
+   (adds `Secure` automatically over HTTPS). `src/proxy.ts` redirects unauthenticated requests
+   to `/login`; the API is the source of truth for every read and write (no mock/local data).
 
 ---
 

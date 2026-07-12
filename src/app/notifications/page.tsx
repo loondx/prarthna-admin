@@ -1,22 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
-import { BarChart, Field, GhostBtn, Modal, PrimaryBtn, StatusBadge, inputCls } from '@/components/ui/kit';
-
-const CLICKS = [
-  { label: 'Mon', value: 1850 },
-  { label: 'Tue', value: 2200 },
-  { label: 'Wed', value: 1960 },
-  { label: 'Thu', value: 2510 },
-  { label: 'Fri', value: 2380 },
-  { label: 'Sat', value: 2890 },
-  { label: 'Sun', value: 3120 },
-];
+import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, StatusBadge, inputCls } from '@/components/ui/kit';
 
 export default function NotificationsPage() {
   const { data, actions, toast } = useStore();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const [form, setForm] = useState({
     title: '',
     category: 'Spiritual',
@@ -52,6 +43,20 @@ export default function NotificationsPage() {
     await actions.deleteNotification(id);
   };
 
+  const sentCount = data.notifications.filter((n) => n.status === 'Sent').length;
+  const scheduledCount = data.notifications.filter((n) => n.status === 'Scheduled').length;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return data.notifications;
+    return data.notifications.filter(
+      (n) =>
+        n.title.toLowerCase().includes(q) ||
+        n.category.toLowerCase().includes(q) ||
+        n.audience.toLowerCase().includes(q),
+    );
+  }, [data.notifications, query]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -65,23 +70,40 @@ export default function NotificationsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 stagger">
-        <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-[#2D1E17] mb-4">Reminder Clicks (this week)</h2>
-          <BarChart points={CLICKS} />
-          <div className="mt-4 pt-4 border-t border-[#EFE6DD] grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <p className="text-[#8C7E77] uppercase font-bold text-[10px] tracking-wider">Delivered</p>
-              <p className="text-lg font-bold text-[#2D1E17]">16.9k</p>
+        <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm h-fit">
+          <h2 className="text-sm font-bold text-[#2D1E17] mb-4">Campaign Summary</h2>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#FAF6F0]/60 border border-[#EFE6DD]">
+              <span className="text-xs font-semibold text-[#8C7E77]">Total campaigns</span>
+              <span className="text-2xl font-bold text-[#2D1E17]">{data.notifications.length}</span>
             </div>
-            <div>
-              <p className="text-[#8C7E77] uppercase font-bold text-[10px] tracking-wider">Open rate</p>
-              <p className="text-lg font-bold text-[#2D1E17]">38.4%</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-700">Sent</p>
+                <p className="text-xl font-bold text-emerald-800">{sentCount}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-amber-700">Scheduled</p>
+                <p className="text-xl font-bold text-amber-800">{scheduledCount}</p>
+              </div>
             </div>
+            <p className="text-[10px] text-[#8C7E77] leading-relaxed pt-1">
+              Push delivery via FCM is pending Firebase credentials — campaigns are recorded and
+              scheduled in the registry.
+            </p>
           </div>
         </div>
 
         <div className="lg:col-span-2 bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-[#2D1E17] mb-5">All Notifications</h2>
+          <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+            <h2 className="text-sm font-bold text-[#2D1E17]">All Notifications</h2>
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search notifications…"
+              className="w-full sm:w-64"
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs text-[#8C7E77]">
               <thead>
@@ -92,7 +114,7 @@ export default function NotificationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.notifications.map((n) => (
+                {filtered.map((n) => (
                   <tr key={n.id} className="border-b border-[#EFE6DD] hover:bg-[#FAF6F0]/30 transition-colors">
                     <td className="py-4 font-semibold text-[#2D1E17]">{n.title}</td>
                     <td className="py-4 text-[#2D1E17]">{n.category}</td>
@@ -114,6 +136,13 @@ export default function NotificationsPage() {
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-[#8C7E77]">
                       No notifications yet — create your first one.
+                    </td>
+                  </tr>
+                )}
+                {data.notifications.length > 0 && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-[#8C7E77]">
+                      No notifications match “{query}”.
                     </td>
                   </tr>
                 )}

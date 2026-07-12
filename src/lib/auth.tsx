@@ -29,7 +29,10 @@ function getCookie(name: string): string | null {
 
 function setCookie(name: string, value: string, hours = 8) {
   const exp = new Date(Date.now() + hours * 3600 * 1000).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${exp}; path=/; SameSite=Strict`;
+  // Secure is added automatically when served over HTTPS (production).
+  const secure =
+    typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${exp}; path=/; SameSite=Strict${secure}`;
 }
 
 function deleteCookie(name: string) {

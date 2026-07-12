@@ -5,23 +5,14 @@ import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import { apiGet } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { DonutChart, LineChart, StatusBadge } from '@/components/ui/kit';
-
-const USER_GROWTH = [
-  { label: '1 Jun', value: 8200 },
-  { label: '8 Jun', value: 9100 },
-  { label: '15 Jun', value: 9800 },
-  { label: '22 Jun', value: 10900 },
-  { label: '29 Jun', value: 11700 },
-  { label: '6 Jul', value: 12460 },
-  { label: '12 Jul', value: 12840 },
-];
+import { BarChart, DonutChart, StatusBadge } from '@/components/ui/kit';
 
 interface LiveStats {
   totalUsers: number;
   totalCollections: number;
   totalFestivals: number;
   totalSankalps: number;
+  totalPosts: number;
   recentAuditLogs: any[];
 }
 
@@ -104,6 +95,26 @@ export default function DashboardPage() {
     },
   ];
 
+  // Real content composition derived from live store data
+  const audioProcessing = data.audio.filter(
+    (a) => a.status === 'processing' || a.status === 'uploading',
+  ).length;
+  const audioReview = data.audio.filter((a) => a.status === 'ready_for_review').length;
+
+  const audioPipeline = [
+    { label: 'Processing', value: audioProcessing },
+    { label: 'In Review', value: audioReview },
+    { label: 'Published', value: audioPublished },
+  ];
+
+  const contentMix = [
+    { label: 'Collections', value: data.collections.length, color: '#8C5A3C' },
+    { label: 'Audio', value: data.audio.length, color: '#D99B26' },
+    { label: 'Templates', value: data.sankalps.length, color: '#4E785A' },
+    { label: 'Festivals', value: data.festivals.length, color: '#E05B35' },
+  ];
+  const hasContent = contentMix.some((s) => s.value > 0);
+
   const upcoming = [...data.festivals]
     .filter((f) => new Date(f.date) >= new Date())
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -148,34 +159,39 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Charts row */}
+      {/* Charts row — derived from live data */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 stagger">
         <div className="lg:col-span-2 bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-[#2D1E17] flex items-center gap-2">
-              <span>📈</span> User Growth
+              <span>🎙️</span> Audio Pipeline
             </h2>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              +14% this week
-            </span>
+            <Link href="/audio" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
+              Open studio →
+            </Link>
           </div>
-          <LineChart points={USER_GROWTH} />
+          {data.audio.length === 0 ? (
+            <div className="h-[150px] flex items-center justify-center text-xs text-[#8C7E77]">
+              No audio tracks uploaded yet.
+            </div>
+          ) : (
+            <BarChart points={audioPipeline} />
+          )}
         </div>
 
         <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-bold text-[#2D1E17] mb-4 flex items-center gap-2">
             <span>🧭</span> Content Mix
           </h2>
-          <DonutChart
-            slices={[
-              { label: 'Verses', value: 700, color: '#8C5A3C' },
-              { label: 'Audio', value: 320, color: '#D99B26' },
-              { label: 'Mantras', value: 108, color: '#4E785A' },
-              { label: 'Notes', value: 96, color: '#E05B35' },
-            ]}
-          />
+          {hasContent ? (
+            <DonutChart slices={contentMix} />
+          ) : (
+            <div className="h-[140px] flex items-center justify-center text-xs text-[#8C7E77]">
+              No content yet.
+            </div>
+          )}
           <p className="text-[11px] text-[#8C7E77] mt-4 leading-relaxed">
-            Bhagavad Gita fully seeded. Audio coverage at 46% of published verses.
+            Live counts across collections, audio tracks, sankalp templates, and festivals.
           </p>
         </div>
       </div>

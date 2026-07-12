@@ -1,40 +1,75 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useStore } from '@/lib/store';
-import { Field, PrimaryBtn, inputCls } from '@/components/ui/kit';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useStore, ShlokaSchedule } from '@/lib/store';
+import { Field, GhostBtn, Modal, PrimaryBtn, inputCls } from '@/components/ui/kit';
 
-const SHLOKA_OPTIONS = [
-  {
-    reference: 'Bhagavad Gita — Chapter 2, Verse 47',
-    sanskrit: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।\nमा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥',
-    translation: 'You have a right to your actions alone, never to their fruits.',
-  },
-  {
-    reference: 'Bhagavad Gita — Chapter 4, Verse 7',
-    sanskrit: 'यदा यदा हि धर्मस्य ग्लानिर्भवति भारत।\nअभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम्॥',
-    translation: 'Whenever righteousness wanes and unrighteousness increases, I send myself forth.',
-  },
-  {
-    reference: 'Bhagavad Gita — Chapter 2, Verse 48',
-    sanskrit: 'योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।\nसिद्ध्यसिद्ध्योः समो भूत्वा समत्वं योग उच्यते॥',
-    translation: 'Perform your duty with equanimity, abandoning attachment to success or failure.',
-  },
-];
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const EMPTY: ShlokaSchedule = {
+  date: todayStr(),
+  reference: '',
+  sanskrit: '',
+  translation: '',
+};
 
 export default function DailyShlokaPage() {
   const { data, actions, toast } = useStore();
-  const [date, setDate] = useState('2026-07-12');
-  const [selected, setSelected] = useState(0);
+  const [form, setForm] = useState<ShlokaSchedule>(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const [schedule, setSchedule] = useState<ShlokaSchedule[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [deleting, setDeleting] = useState<ShlokaSchedule | null>(null);
 
-  const schedule = async () => {
-    const s = SHLOKA_OPTIONS[selected];
-    await actions.saveShloka({
-      date,
-      reference: s.reference,
-      sanskrit: s.sanskrit,
-      translation: s.translation,
+  const loadSchedule = useCallback(async () => {
+    setListLoading(true);
+    try {
+      setSchedule(await actions.getShlokas());
+    } catch {
+      toast('Could not load the shloka schedule', 'error');
+    } finally {
+      setListLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadSchedule();
+  }, [loadSchedule]);
+
+  const saveShloka = async () => {
+    if (!form.date) {
+      toast('A scheduled date is required', 'error');
+      return;
+    }
+    if (!form.reference.trim() || !form.sanskrit.trim() || !form.translation.trim()) {
+      toast('Reference, Sanskrit, and translation are required', 'error');
+      return;
+    }
+    setSaving(true);
+    const ok = await actions.saveShloka({
+      date: form.date,
+      reference: form.reference.trim(),
+      sanskrit: form.sanskrit,
+      translation: form.translation,
     });
+    setSaving(false);
+    if (ok) {
+      setForm({ ...EMPTY, date: todayStr() });
+      loadSchedule();
+    }
+  };
+
+  const editRow = (s: ShlokaSchedule) => {
+    setForm({ ...s });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    const ok = await actions.deleteShloka(deleting.date);
+    setDeleting(null);
+    if (ok) loadSchedule();
   };
 
   return (
@@ -47,63 +82,163 @@ export default function DailyShlokaPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 stagger">
+        {/* Current active shloka */}
         <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 space-y-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-[#2D1E17]">Current Active Shloka</h2>
-            <span className="text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-              Live · {data.shloka.date}
-            </span>
+            {data.shloka.date ? (
+              <span className="text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                Live · {data.shloka.date}
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                None scheduled
+              </span>
+            )}
           </div>
-          <div className="p-6 rounded-xl bg-[#FAF6F0] border border-[#EFE6DD] space-y-4 text-center">
-            <span className="text-2xl text-[#8C5A3C] font-bold">🕉️</span>
-            <p className="text-lg font-bold text-[#2D1E17] italic whitespace-pre-line">
-              {data.shloka.sanskrit}
-            </p>
-            <p className="text-xs text-[#8C7E77] font-medium">{data.shloka.reference}</p>
-            <div className="text-left pt-4 border-t border-[#EFE6DD] text-xs text-[#8C7E77]">
-              <p>
-                <strong className="text-[#2D1E17]">Translation:</strong> {data.shloka.translation}
+          {data.shloka.reference ? (
+            <div className="p-6 rounded-xl bg-[#FAF6F0] border border-[#EFE6DD] space-y-4 text-center">
+              <span className="text-2xl text-[#8C5A3C] font-bold">🕉️</span>
+              <p className="text-lg font-bold text-[#2D1E17] italic whitespace-pre-line">
+                {data.shloka.sanskrit}
               </p>
+              <p className="text-xs text-[#8C7E77] font-medium">{data.shloka.reference}</p>
+              <div className="text-left pt-4 border-t border-[#EFE6DD] text-xs text-[#8C7E77]">
+                <p>
+                  <strong className="text-[#2D1E17]">Translation:</strong> {data.shloka.translation}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-8 rounded-xl bg-[#FAF6F0] border border-[#EFE6DD] text-center text-xs text-[#8C7E77]">
+              No shloka is scheduled yet. Add one to feature it on the app home screen.
+            </div>
+          )}
         </div>
 
+        {/* Compose / edit shloka */}
         <div className="bg-white border border-[#EFE6DD] rounded-2xl p-6 shadow-sm h-fit">
-          <h2 className="text-sm font-bold text-[#2D1E17] mb-4">Schedule Next Shloka</h2>
+          <h2 className="text-sm font-bold text-[#2D1E17] mb-4">Schedule a Shloka</h2>
           <div className="space-y-4">
-            <Field label="Scheduled date">
+            <Field label="Scheduled date *">
               <input
                 type="date"
                 className={inputCls}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
             </Field>
-            <Field label="Scripture unit">
-              <select
+            <Field label="Reference *">
+              <input
                 className={inputCls}
-                value={selected}
-                onChange={(e) => setSelected(Number(e.target.value))}
-              >
-                {SHLOKA_OPTIONS.map((s, i) => (
-                  <option key={s.reference} value={i}>
-                    {s.reference}
-                  </option>
-                ))}
-              </select>
+                value={form.reference}
+                onChange={(e) => setForm({ ...form, reference: e.target.value })}
+                placeholder="e.g. Bhagavad Gita — Chapter 2, Verse 47"
+              />
             </Field>
-            <div className="p-4 rounded-xl bg-[#FAF6F0]/60 border border-[#EFE6DD] text-xs text-[#8C7E77]">
-              <p className="whitespace-pre-line font-medium text-[#2D1E17] mb-2">
-                {SHLOKA_OPTIONS[selected].sanskrit}
-              </p>
-              {SHLOKA_OPTIONS[selected].translation}
-            </div>
-            <PrimaryBtn className="w-full" onClick={schedule}>
-              Schedule Daily Shloka
+            <Field label="Sanskrit *">
+              <textarea
+                className={`${inputCls} min-h-24 font-serif`}
+                value={form.sanskrit}
+                onChange={(e) => setForm({ ...form, sanskrit: e.target.value })}
+                placeholder="देवनागरी…"
+              />
+            </Field>
+            <Field label="Translation *">
+              <textarea
+                className={`${inputCls} min-h-20`}
+                value={form.translation}
+                onChange={(e) => setForm({ ...form, translation: e.target.value })}
+                placeholder="English translation"
+              />
+            </Field>
+            <PrimaryBtn className="w-full" onClick={saveShloka} disabled={saving}>
+              {saving ? 'Saving…' : 'Schedule Shloka'}
             </PrimaryBtn>
+            <p className="text-[10px] text-[#8C7E77] text-center">
+              Scheduling for a date that already has a shloka replaces it.
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Schedule list */}
+      <div className="bg-white border border-[#EFE6DD] rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#EFE6DD]">
+          <h2 className="text-sm font-bold text-[#2D1E17]">Scheduled Shlokas</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-[#8C7E77]">
+            <thead className="border-b border-[#EFE6DD]">
+              <tr>
+                {['Date', 'Reference', 'Translation', 'Actions'].map((h) => (
+                  <th key={h} className="px-6 py-3 font-bold uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading &&
+                [0, 1, 2].map((i) => (
+                  <tr key={i} className="border-b border-[#EFE6DD]">
+                    {[0, 1, 2, 3].map((j) => (
+                      <td key={j} className="px-6 py-4">
+                        <div className="h-3 bg-[#EFE6DD] rounded animate-pulse w-3/4" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              {!listLoading &&
+                schedule.map((s) => (
+                  <tr key={s.date} className="border-b border-[#EFE6DD] hover:bg-[#FAF6F0]/40 transition-colors">
+                    <td className="px-6 py-4 font-semibold text-[#2D1E17] whitespace-nowrap">{s.date}</td>
+                    <td className="px-6 py-4 text-[#2D1E17] max-w-[16rem]">
+                      <span className="line-clamp-1">{s.reference}</span>
+                    </td>
+                    <td className="px-6 py-4 max-w-[20rem]">
+                      <span className="line-clamp-1">{s.translation}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-2">
+                        <GhostBtn onClick={() => editRow(s)}>Edit</GhostBtn>
+                        <button
+                          onClick={() => setDeleting(s)}
+                          className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              {!listLoading && schedule.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-[#8C7E77]">
+                    No shlokas scheduled yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <Modal title="Delete Shloka" open={!!deleting} onClose={() => setDeleting(null)}>
+        <div className="space-y-4">
+          <p className="text-[#8C7E77] text-xs">
+            Remove the shloka scheduled for{' '}
+            <strong className="text-[#2D1E17]">{deleting?.date}</strong>?
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <GhostBtn onClick={() => setDeleting(null)}>Cancel</GhostBtn>
+            <button
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all"
+            >
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

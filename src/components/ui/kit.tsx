@@ -108,6 +108,33 @@ export function GhostBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   );
 }
 
+export function SearchInput({
+  value,
+  onChange,
+  placeholder = 'Search…',
+  className = '',
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`relative ${className}`}>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7E77] text-xs pointer-events-none">
+        🔍
+      </span>
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-white border border-[#EFE6DD] rounded-lg pl-8 pr-3 py-2 text-xs text-[#2D1E17] focus:outline-none focus:border-[#8C5A3C] transition-colors"
+      />
+    </div>
+  );
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const s = status.toLowerCase();
   const cls =

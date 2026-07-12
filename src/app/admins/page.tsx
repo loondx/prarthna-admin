@@ -9,17 +9,12 @@ interface AdminUser {
   id: string;
   email: string;
   name: string;
-  role: string;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  super_admin: 'Super Admin',
-};
-
-const EMPTY = { email: '', password: '', name: '', role: 'super_admin' };
+const EMPTY = { email: '', password: '', name: '' };
 
 export default function AdminUsersPage() {
   const { token, session } = useAuth();
@@ -99,7 +94,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#2D1E17]">Admin Users</h1>
           <p className="text-[#8C7E77] text-xs mt-1">
-            Manage administrator accounts with role-based access control.
+            Administrator accounts. Every admin has full access to the panel.
           </p>
         </div>
         <PrimaryBtn onClick={() => { setForm(EMPTY); setFormError(''); setCreating(true); }}>
@@ -117,7 +112,7 @@ export default function AdminUsersPage() {
         <table className="w-full text-left text-xs text-[#8C7E77]">
           <thead className="border-b border-[#EFE6DD]">
             <tr>
-              {['Admin', 'Role', 'Status', 'Last Login', 'Actions'].map((h) => (
+              {['Admin', 'Status', 'Last Login', 'Actions'].map((h) => (
                 <th key={h} className="px-6 py-4 font-bold uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -126,7 +121,7 @@ export default function AdminUsersPage() {
             {loading ? (
               [...Array(3)].map((_, i) => (
                 <tr key={i} className="border-b border-[#EFE6DD]">
-                  {[...Array(5)].map((_, j) => (
+                  {[...Array(4)].map((_, j) => (
                     <td key={j} className="px-6 py-4">
                       <div className="h-3 bg-[#EFE6DD] rounded animate-pulse w-3/4" />
                     </td>
@@ -145,11 +140,6 @@ export default function AdminUsersPage() {
                       <p className="text-[10px]">{admin.email}</p>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="font-semibold text-[#8C5A3C] text-[10px] bg-[#8C5A3C]/10 px-2 py-1 rounded-full">
-                    {ROLE_LABELS[admin.role] ?? admin.role}
-                  </span>
                 </td>
                 <td className="px-6 py-4">
                   <StatusBadge status={admin.isActive ? 'Active' : 'Inactive'} />
@@ -179,7 +169,7 @@ export default function AdminUsersPage() {
             ))}
             {!loading && admins.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-14 text-center text-[#8C7E77]">
+                <td colSpan={4} className="px-6 py-14 text-center text-[#8C7E77]">
                   <div className="text-3xl mb-2">👤</div>
                   <p className="text-sm font-medium">No admin users found.</p>
                 </td>

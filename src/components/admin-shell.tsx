@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { StoreProvider, useStore } from '@/lib/store';
@@ -13,7 +13,7 @@ import { Toaster } from '@/components/ui/kit';
  */
 
 /** Inner header — must live inside both StoreProvider and AuthProvider trees */
-function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; setCurrentRole: (r: string) => void }) {
+function AdminHeader() {
   const pathname = usePathname();
   const { connected, apiLoading } = useStore();
   const { session, logout } = useAuth();
@@ -39,24 +39,8 @@ function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; set
             <span className="w-2 h-2 rounded-full bg-[#8C7E77]/40" />
           )}
           <span className={apiLoading ? 'text-amber-600' : connected ? 'text-emerald-700' : 'text-[#8C7E77]'}>
-            {apiLoading ? 'Syncing…' : connected ? 'API Live' : 'Local Mode'}
+            {apiLoading ? 'Syncing…' : connected ? 'API Live' : 'Offline'}
           </span>
-        </div>
-
-        {/* Role Switcher (dev only) */}
-        <div className="flex items-center gap-2 bg-[#FAF6F0] border border-[#EFE6DD] rounded-lg px-3 py-1.5 shadow-inner">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C7E77]">Role:</label>
-          <select
-            value={currentRole}
-            onChange={(e) => setCurrentRole(e.target.value)}
-            className="bg-transparent text-xs text-[#8C5A3C] font-semibold focus:outline-none cursor-pointer"
-          >
-            <option value="super_admin">Super Admin</option>
-            <option value="editor">Content Editor</option>
-            <option value="reviewer">Reviewer</option>
-            <option value="audio_manager">Audio Manager</option>
-            <option value="analytics">Analytics Viewer</option>
-          </select>
         </div>
 
         {/* Session User + Logout */}
@@ -68,7 +52,7 @@ function AdminHeader({ currentRole, setCurrentRole }: { currentRole: string; set
               </div>
               <span className="text-xs font-semibold text-[#2D1E17]">{session.name.split(' ')[0]}</span>
               <span className="text-[9px] font-bold uppercase text-[#8C5A3C] bg-[#8C5A3C]/10 px-1.5 py-0.5 rounded-full">
-                {session.role.replace('_', ' ')}
+                Admin
               </span>
             </div>
             <button
@@ -89,25 +73,23 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: string;
-  allowedRoles: string[];
 }
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: '📊', allowedRoles: ['super_admin', 'editor', 'reviewer', 'audio_manager', 'analytics'] },
-  { name: 'Content Library', href: '/content', icon: '📚', allowedRoles: ['super_admin', 'editor', 'reviewer'] },
-  { name: 'Audio Studio', href: '/audio', icon: '🎙️', allowedRoles: ['super_admin', 'audio_manager', 'reviewer'] },
-  { name: 'Daily Shloka', href: '/shloka', icon: '🕉️', allowedRoles: ['super_admin', 'editor'] },
-  { name: 'Sankalp Templates', href: '/sankalp', icon: '📝', allowedRoles: ['super_admin', 'editor'] },
-  { name: 'Festivals', href: '/festivals', icon: '🪔', allowedRoles: ['super_admin', 'editor'] },
-  { name: 'Notifications', href: '/notifications', icon: '🔔', allowedRoles: ['super_admin', 'editor'] },
-  { name: 'Admin Users', href: '/admins', icon: '👤', allowedRoles: ['super_admin'] },
-  { name: 'Settings', href: '/settings', icon: '⚙️', allowedRoles: ['super_admin'] },
-  { name: 'Audit Logs', href: '/audit', icon: '📜', allowedRoles: ['super_admin'] },
+  { name: 'Dashboard', href: '/dashboard', icon: '📊' },
+  { name: 'Content Library', href: '/content', icon: '📚' },
+  { name: 'Audio Studio', href: '/audio', icon: '🎙️' },
+  { name: 'Daily Shloka', href: '/shloka', icon: '🕉️' },
+  { name: 'Sankalp Templates', href: '/sankalp', icon: '📝' },
+  { name: 'Festivals', href: '/festivals', icon: '🪔' },
+  { name: 'Notifications', href: '/notifications', icon: '🔔' },
+  { name: 'Admin Users', href: '/admins', icon: '👤' },
+  { name: 'Settings', href: '/settings', icon: '⚙️' },
+  { name: 'Audit Logs', href: '/audit', icon: '📜' },
 ];
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [currentRole, setCurrentRole] = useState<string>('super_admin');
 
   return (
     <div className="flex min-h-screen bg-[#FAF6F0] text-[#2D1E17]">
@@ -126,33 +108,20 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
           <nav className="p-4 space-y-0.5">
             {NAVIGATION_ITEMS.map((item) => {
-              const isAllowed = item.allowedRoles.includes(currentRole);
               const isActive = pathname === item.href;
-
               return (
-                <div key={item.name}>
-                  {isAllowed ? (
-                    <Link
-                      href={item.href}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#8C5A3C] text-white shadow-md'
-                          : 'text-[#D9CFC7]/80 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="text-base">{item.icon}</span>
-                      {item.name}
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-white/20 cursor-not-allowed select-none">
-                      <span className="text-base opacity-20">{item.icon}</span>
-                      <span className="line-through">{item.name}</span>
-                      <span className="ml-auto text-[9px] uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded text-white/30 font-bold border border-white/10">
-                        Locked
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-[#8C5A3C] text-white shadow-md'
+                      : 'text-[#D9CFC7]/80 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  {item.name}
+                </Link>
               );
             })}
           </nav>
@@ -164,7 +133,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader currentRole={currentRole} setCurrentRole={setCurrentRole} />
+        <AdminHeader />
         <main className="flex-1 p-8 overflow-y-auto">
           {children}
         </main>
