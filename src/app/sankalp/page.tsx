@@ -18,7 +18,7 @@ const DIFFICULTY_COLORS: Record<SankalpTemplate['difficulty'], string> = {
 };
 
 export default function SankalpTemplatesPage() {
-  const { data, actions, toast } = useStore();
+  const { data, actions, toast, apiLoading } = useStore();
   const [editing, setEditing] = useState<SankalpTemplate | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<SankalpTemplate | null>(null);
@@ -86,6 +86,14 @@ export default function SankalpTemplatesPage() {
         />
       </div>
 
+      {apiLoading && data.sankalps.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-56 rounded-2xl bg-white border border-[#EFE6DD] animate-pulse" />
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger">
         {filtered.map((t) => (
           <div
@@ -129,7 +137,7 @@ export default function SankalpTemplatesPage() {
           </div>
         ))}
 
-        {data.sankalps.length === 0 && (
+        {!apiLoading && data.sankalps.length === 0 && (
           <div className="col-span-3 py-16 text-center text-[#8C7E77] text-sm">
             No sankalp templates yet. Create your first one above.
           </div>

@@ -121,13 +121,16 @@ export default function DashboardPage() {
     .slice(0, 4);
 
   const auditDisplay = liveStats?.recentAuditLogs?.length
-    ? liveStats.recentAuditLogs.map((l: any) => ({
-        id: l.id,
-        actor: l.user?.email ?? 'System',
-        action: l.action,
-        module: l.entityName,
-        date: new Date(l.createdAt).toLocaleString(),
-      }))
+    ? liveStats.recentAuditLogs.map((l: any) => {
+        const email = l.actorEmail ?? l.user?.email ?? 'system@prarthna.app';
+        return {
+          id: l.id,
+          actor: email.split('@')[0],
+          action: l.action,
+          module: l.entityName,
+          date: new Date(l.createdAt).toLocaleString(),
+        };
+      })
     : data.audit.slice(0, 5).map((a) => ({ id: a.id, actor: a.actor, action: a.action, module: a.module, date: a.date }));
 
   return (

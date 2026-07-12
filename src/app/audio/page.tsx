@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useStore, ContentNodeOption, ContentUnitOption } from '@/lib/store';
-import { Field, GhostBtn, PrimaryBtn, StatusBadge, inputCls } from '@/components/ui/kit';
+import { useStore, ContentNodeOption, ContentUnitOption, AudioTrack } from '@/lib/store';
+import { MEDIA_BASE } from '@/lib/api';
+import { Field, GhostBtn, Modal, PrimaryBtn, StatusBadge, inputCls } from '@/components/ui/kit';
 
 export default function AudioStudioPage() {
-  const { data, actions, toast } = useStore();
+  const { data, actions, toast, apiLoading } = useStore();
   const [collectionId, setCollectionId] = useState('');
   const [nodes, setNodes] = useState<ContentNodeOption[]>([]);
   const [nodeId, setNodeId] = useState('');
@@ -13,7 +14,14 @@ export default function AudioStudioPage() {
   const [unitId, setUnitId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<AudioTrack | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    await actions.deleteAudio(deleting.id);
+    setDeleting(null);
+  };
 
   // Cascade: collection → chapters (nodes)
   useEffect(() => {
@@ -145,16 +153,35 @@ export default function AudioStudioPage() {
             <table className="w-full text-left border-collapse text-xs text-[#8C7E77]">
               <thead>
                 <tr className="border-b border-[#EFE6DD]">
-                  {['Filename', 'Size', 'Duration', 'Uploader', 'Status', 'Action'].map((h) => (
+                  {['Filename', 'Preview', 'Size', 'Duration', 'Status', 'Actions'].map((h) => (
                     <th key={h} className="pb-3 font-bold uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
+                {apiLoading && data.audio.length === 0 &&
+                  [0, 1, 2].map((i) => (
+                    <tr key={i} className="border-b border-[#EFE6DD]">
+                      {[0, 1, 2, 3, 4, 5].map((j) => (
+                        <td key={j} className="py-4 pr-4">
+                          <div className="h-3 bg-[#EFE6DD] rounded animate-pulse" style={{ width: `${55 + j * 6}%` }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                {!apiLoading && data.audio.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-[#8C7E77]">
+                      <div className="text-3xl mb-2">🎧</div>
+                      <p className="text-sm font-medium">No audio uploaded yet.</p>
+                      <p className="text-xs mt-1 opacity-70">Upload a recitation for a verse to see it here.</p>
+                    </td>
+                  </tr>
+                )}
                 {data.audio.map((t) => (
                   <tr key={t.id} className="border-b border-[#EFE6DD] hover:bg-[#FAF6F0]/30 transition-colors">
-                    <td className="py-4 font-semibold text-[#2D1E17]">
-                      {t.title}
+                    <td className="py-4 pr-4 font-semibold text-[#2D1E17] max-w-[16rem]">
+                      <span className="line-clamp-1">{t.title}</span>
                       {(t.status === 'uploading' || t.status === 'processing') && (
                         <div className="mt-1.5 h-1 w-32 rounded-full bg-[#EFE6DD] overflow-hidden">
                           <div
@@ -164,16 +191,34 @@ export default function AudioStudioPage() {
                         </div>
                       )}
                     </td>
-                    <td className="py-4 text-[#2D1E17]">{t.size}</td>
-                    <td className="py-4 text-[#2D1E17]">{t.duration}</td>
-                    <td className="py-4 text-[#2D1E17]">{t.user}</td>
-                    <td className="py-4"><StatusBadge status={t.status} /></td>
-                    <td className="py-4">
-                      {t.status === 'ready_for_review' ? (
-                        <GhostBtn onClick={() => approve(t.id, t.title)}>✓ Approve</GhostBtn>
+                    <td className="py-4 pr-4">
+                      {t.audioUrl ? (
+                        <audio
+                          controls
+                          preload="none"
+                          src={`${MEDIA_BASE}${t.audioUrl}`}
+                          className="h-8 w-52 max-w-full"
+                        />
                       ) : (
                         <span className="text-[#8C7E77]">—</span>
                       )}
+                    </td>
+                    <td className="py-4 pr-4 text-[#2D1E17] whitespace-nowrap">{t.size}</td>
+                    <td className="py-4 pr-4 text-[#2D1E17] whitespace-nowrap">{t.duration}</td>
+                    <td className="py-4 pr-4"><StatusBadge status={t.status} /></td>
+                    <td className="py-4">
+                      <div className="flex items-center gap-2">
+                        {t.status === 'ready_for_review' && (
+                          <GhostBtn onClick={() => approve(t.id, t.title)}>✓ Approve</GhostBtn>
+                        )}
+                        <button
+                          onClick={() => setDeleting(t)}
+                          title="Delete audio"
+                          className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -182,6 +227,24 @@ export default function AudioStudioPage() {
           </div>
         </div>
       </div>
+
+      <Modal title="Delete Audio" open={!!deleting} onClose={() => setDeleting(null)}>
+        <div className="space-y-4">
+          <p className="text-[#8C7E77] text-xs">
+            Delete <strong className="text-[#2D1E17]">{deleting?.title}</strong>? Listeners will no
+            longer hear this recitation in the app. This cannot be undone from the panel.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <GhostBtn onClick={() => setDeleting(null)}>Cancel</GhostBtn>
+            <button
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all"
+            >
+              Yes, Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

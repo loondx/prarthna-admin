@@ -229,6 +229,7 @@ interface StoreValue {
     saveSettings: (value: AdminData['settings']) => Promise<boolean>;
     uploadAudio: (file: File, contentUnitId: string, title?: string) => Promise<boolean>;
     setAudioStatus: (id: string, status: string) => Promise<boolean>;
+    deleteAudio: (id: string) => Promise<boolean>;
     listNodes: (collectionId: string) => Promise<ContentNodeOption[]>;
     listUnits: (nodeId: string) => Promise<ContentUnitOption[]>;
     getChapters: (collectionId: string) => Promise<ChapterNode[]>;
@@ -395,6 +396,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
     setAudioStatus: (id, status) =>
       run(() => apiPatch(`/content/media/${id}/status`, { status })),
+    deleteAudio: (id) =>
+      run(() => apiDelete(`/content/media/${id}`), 'Audio deleted'),
     listNodes: async (collectionId) => {
       const detail = await apiGet<any>(`/content/collections/${collectionId}`);
       return (detail.nodes ?? []).map((n: any) => ({ id: n.id, title: n.title }));

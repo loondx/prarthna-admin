@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, StatusBadge, inputCls } from '@/components/ui/kit';
 
 export default function NotificationsPage() {
-  const { data, actions, toast } = useStore();
+  const { data, actions, toast, apiLoading } = useStore();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [form, setForm] = useState({
@@ -114,6 +114,16 @@ export default function NotificationsPage() {
                 </tr>
               </thead>
               <tbody>
+                {apiLoading && data.notifications.length === 0 &&
+                  [0, 1, 2].map((i) => (
+                    <tr key={i} className="border-b border-[#EFE6DD]">
+                      {[0, 1, 2, 3, 4, 5].map((j) => (
+                        <td key={j} className="py-4 pr-4">
+                          <div className="h-3 bg-[#EFE6DD] rounded animate-pulse" style={{ width: `${55 + j * 6}%` }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
                 {filtered.map((n) => (
                   <tr key={n.id} className="border-b border-[#EFE6DD] hover:bg-[#FAF6F0]/30 transition-colors">
                     <td className="py-4 font-semibold text-[#2D1E17]">{n.title}</td>
@@ -132,7 +142,7 @@ export default function NotificationsPage() {
                     </td>
                   </tr>
                 ))}
-                {data.notifications.length === 0 && (
+                {!apiLoading && data.notifications.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-[#8C7E77]">
                       No notifications yet — create your first one.
