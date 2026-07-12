@@ -23,20 +23,18 @@ const SHLOKA_OPTIONS = [
 ];
 
 export default function DailyShlokaPage() {
-  const { data, update, toast } = useStore();
+  const { data, actions, toast } = useStore();
   const [date, setDate] = useState('2026-07-12');
   const [selected, setSelected] = useState(0);
 
-  const schedule = () => {
+  const schedule = async () => {
     const s = SHLOKA_OPTIONS[selected];
-    update(
-      (d) => ({
-        ...d,
-        shloka: { date, reference: s.reference, sanskrit: s.sanskrit, translation: s.translation },
-      }),
-      { action: `Scheduled daily shloka (${s.reference}) for ${date}`, module: 'Content' },
-    );
-    toast(`Daily shloka scheduled for ${date}`);
+    await actions.saveShloka({
+      date,
+      reference: s.reference,
+      sanskrit: s.sanskrit,
+      translation: s.translation,
+    });
   };
 
   return (

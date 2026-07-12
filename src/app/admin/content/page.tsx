@@ -4,68 +4,33 @@ import React, { useState } from 'react';
 import { useStore, Collection } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, inputCls } from '@/components/ui/kit';
 
-const EMPTY = { title: '', nodes: '', units: '', lang: 'Sanskrit & English' };
+const EMPTY = { title: '', type: 'SCRIPTURE', description: '' };
 
 export default function ContentLibraryPage() {
-  const { data, update, toast } = useStore();
+  const { data, actions, toast } = useStore();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
-  const importCollection = () => {
+  const importCollection = async () => {
     if (!form.title.trim()) {
       toast('Collection title is required', 'error');
       return;
     }
-
-    // Sync to real database API
-    fetch('http://localhost:3001/api/v1/content/collections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: form.title.trim(),
-        type: 'SCRIPTURE',
-        description: `Imported via Admin Panel: ${form.nodes || '0'} chapters, ${form.units || '0'} verses`,
-      }),
-    })
-      .then((res) => {
-        if (res.ok) {
-          toast(`"${form.title.trim()}" saved to PostgreSQL!`, 'success');
-        }
-      })
-      .catch(() => {});
-
-    update(
-      (d) => ({
-        ...d,
-        collections: [
-          ...d.collections,
-          {
-            id: `c${Date.now()}`,
-            title: form.title.trim(),
-            status: 'Draft',
-            nodes: form.nodes || '— Chapters',
-            units: form.units || '— Verses',
-            lang: form.lang,
-          },
-        ],
-      }),
-      { action: `Imported collection "${form.title.trim()}"`, module: 'Content' },
-    );
-    toast(`Collection "${form.title.trim()}" imported as draft`);
-    setOpen(false);
-    setForm(EMPTY);
+    const ok = await actions.createCollection({
+      title: form.title.trim(),
+      type: form.type,
+      description: form.description || undefined,
+    });
+    if (ok) {
+      setOpen(false);
+      setForm(EMPTY);
+    }
   };
 
-  const toggleStatus = (c: Collection) => {
+  const toggleStatus = async (c: Collection) => {
     const next = c.status === 'Published' ? 'Draft' : 'Published';
-    update(
-      (d) => ({
-        ...d,
-        collections: d.collections.map((x) => (x.id === c.id ? { ...x, status: next } : x)),
-      }),
-      { action: `${next === 'Published' ? 'Published' : 'Unpublished'} "${c.title}"`, module: 'Content' },
-    );
-    toast(`"${c.title}" is now ${next.toLowerCase()}`);
+    const ok = await actions.setCollectionStatus(c.id, next);
+    if (ok) toast(`"${c.title}" is now ${next.toLowerCase()}`);
   };
 
   return (
@@ -132,34 +97,24 @@ export default function ContentLibraryPage() {
               placeholder="e.g. Shiv Puran"
             />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Nodes (chapters)">
-              <input
-                className={inputCls}
-                value={form.nodes}
-                onChange={(e) => setForm({ ...form, nodes: e.target.value })}
-                placeholder="e.g. 24 Chapters"
-              />
-            </Field>
-            <Field label="Units (verses)">
-              <input
-                className={inputCls}
-                value={form.units}
-                onChange={(e) => setForm({ ...form, units: e.target.value })}
-                placeholder="e.g. 12,000 Verses"
-              />
-            </Field>
-          </div>
-          <Field label="Languages">
+          <Field label="Type">
             <select
               className={inputCls}
-              value={form.lang}
-              onChange={(e) => setForm({ ...form, lang: e.target.value })}
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
             >
-              {['Sanskrit & English', 'Sanskrit & Hindi', 'Awadhi & English'].map((l) => (
-                <option key={l}>{l}</option>
+              {['SCRIPTURE', 'PRAYER'].map((t) => (
+                <option key={t}>{t}</option>
               ))}
             </select>
+          </Field>
+          <Field label="Description">
+            <input
+              className={inputCls}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="e.g. The 700-verse Hindu scripture in 18 chapters."
+            />
           </Field>
           <div className="flex justify-end gap-3 pt-2">
             <GhostBtn onClick={() => setOpen(false)}>Cancel</GhostBtn>

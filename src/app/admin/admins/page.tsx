@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { API_BASE } from '@/lib/api';
 import { Field, GhostBtn, Modal, PrimaryBtn, StatusBadge, inputCls } from '@/components/ui/kit';
 
 interface AdminUser {
@@ -37,7 +38,7 @@ export default function AdminUsersPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/v1/admin/users', {
+      const res = await fetch(`${API_BASE}/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to load admins');
@@ -63,7 +64,7 @@ export default function AdminUsersPage() {
     }
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:3001/api/v1/admin/users', {
+      const res = await fetch(`${API_BASE}/admin/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(form),
@@ -85,7 +86,7 @@ export default function AdminUsersPage() {
   const handleDeactivate = async (id: string, name: string) => {
     if (!confirm(`Deactivate "${name}"? They will no longer be able to login.`)) return;
     try {
-      await fetch(`http://localhost:3001/api/v1/admin/users/${id}`, {
+      await fetch(`${API_BASE}/admin/users/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

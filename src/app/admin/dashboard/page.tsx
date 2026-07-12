@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
+import { apiGet } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { DonutChart, LineChart, StatusBadge } from '@/components/ui/kit';
 
@@ -57,11 +58,8 @@ export default function DashboardPage() {
   // Pull real stats from backend
   useEffect(() => {
     if (!token) return;
-    fetch('http://localhost:3001/api/v1/admin/stats', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setLiveStats(d); })
+    apiGet<LiveStats>('/admin/stats')
+      .then((d) => setLiveStats(d))
       .catch(() => {})
       .finally(() => setStatsLoading(false));
   }, [token]);

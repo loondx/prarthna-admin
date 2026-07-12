@@ -18,7 +18,7 @@ const DIFFICULTY_COLORS: Record<SankalpTemplate['difficulty'], string> = {
 };
 
 export default function SankalpTemplatesPage() {
-  const { data, update, toast } = useStore();
+  const { data, actions, toast } = useStore();
   const [editing, setEditing] = useState<SankalpTemplate | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<SankalpTemplate | null>(null);
@@ -29,36 +29,21 @@ export default function SankalpTemplatesPage() {
     setEditing(null);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!form.title.trim()) {
       toast('Template title is required', 'error');
       return;
     }
-    if (creating) {
-      update(
-        (d) => ({ ...d, sankalps: [...d.sankalps, { ...form, id: `s${Date.now()}` }] }),
-        { action: `Created sankalp template "${form.title}"`, module: 'Sankalp' },
-      );
-      toast(`Template "${form.title}" created`);
-    } else if (editing) {
-      update(
-        (d) => ({
-          ...d,
-          sankalps: d.sankalps.map((s) => (s.id === editing.id ? { ...s, ...form } : s)),
-        }),
-        { action: `Updated sankalp template "${form.title}"`, module: 'Sankalp' },
-      );
-      toast(`Template "${form.title}" updated`);
-    }
-    close();
+    const ok = creating
+      ? await actions.createTemplate(form)
+      : editing
+        ? await actions.updateTemplate(editing.id, form)
+        : false;
+    if (ok) close();
   };
 
-  const confirmRemove = (s: SankalpTemplate) => {
-    update(
-      (d) => ({ ...d, sankalps: d.sankalps.filter((x) => x.id !== s.id) }),
-      { action: `Deleted sankalp template "${s.title}"`, module: 'Sankalp' },
-    );
-    toast(`Template "${s.title}" deleted`, 'info');
+  const confirmRemove = async (s: SankalpTemplate) => {
+    await actions.deleteTemplate(s.id);
     setDeleting(null);
   };
 

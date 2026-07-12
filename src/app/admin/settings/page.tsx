@@ -5,13 +5,13 @@ import { useStore } from '@/lib/store';
 import { Field, PrimaryBtn, inputCls } from '@/components/ui/kit';
 
 export default function SettingsPage() {
-  const { data, ready, connected, update, toast } = useStore();
+  const { data, ready, actions } = useStore();
   const [mediaPath, setMediaPath] = useState(data.settings.mediaPath);
   const [morning, setMorning] = useState(data.settings.reminderMorning);
   const [evening, setEvening] = useState(data.settings.reminderEvening);
   const [saving, setSaving] = useState(false);
 
-  // Sync local form once persisted settings load from localStorage.
+  // Sync local form once settings load from the backend.
   useEffect(() => {
     if (!ready) return;
     setMediaPath(data.settings.mediaPath);
@@ -22,28 +22,11 @@ export default function SettingsPage() {
 
   const save = async () => {
     setSaving(true);
-    update(
-      (d) => ({
-        ...d,
-        settings: { mediaPath, reminderMorning: morning, reminderEvening: evening },
-      }),
-      { action: 'Updated application settings', module: 'Settings' },
-    );
-
-    // Push reminder defaults to backend if connected
-    if (connected) {
-      try {
-        await fetch('http://localhost:3001/api/v1/users/reminders/system', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ morning, evening }),
-        });
-      } catch {
-        /* non-critical, already saved locally */
-      }
-    }
-
-    toast('Settings saved successfully');
+    await actions.saveSettings({
+      mediaPath,
+      reminderMorning: morning,
+      reminderEvening: evening,
+    });
     setSaving(false);
   };
 

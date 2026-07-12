@@ -1,15 +1,12 @@
 'use client';
 
 /**
- * Client-side admin data store — persisted to localStorage so the panel is
- * fully interactive without the backend running. Shapes mirror the
- * prarthna-backend Prisma models so swapping in React Query is a drop-in.
+ * Admin data store — fully backend-driven.
  *
- * Production changes:
- *  - syncBackend fetches: collections, festivals, audit logs
- *  - apiLoading flag for skeleton states
- *  - api() helper for typed fetch with graceful fallback
- *  - connected / apiError state exposed to UI
+ * All reads come from the NestJS API on mount (and via refresh()); all
+ * mutations call the API and update local state from the server response.
+ * Audit entries are recorded server-side by the backend on each mutation —
+ * the panel never fabricates audit rows.
  */
 
 import React, {
@@ -17,9 +14,20 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from 'react';
+import {
+  ApiError,
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPut,
+  apiUpload,
+  getAdminToken,
+} from './api';
+
+// ── View models (shaped for the existing page markup) ─────────────
 
 export interface Collection {
   id: string;
@@ -38,6 +46,7 @@ export interface AudioTrack {
   status: 'uploading' | 'processing' | 'ready_for_review' | 'published';
   user: string;
   progress: number;
+  audioUrl?: string;
 }
 
 export interface SankalpTemplate {
@@ -83,6 +92,16 @@ export interface ShlokaSchedule {
   translation: string;
 }
 
+export interface ContentUnitOption {
+  id: string;
+  verseNumber: string;
+}
+
+export interface ContentNodeOption {
+  id: string;
+  title: string;
+}
+
 export interface Toast {
   id: number;
   message: string;
@@ -100,67 +119,67 @@ interface AdminData {
   settings: { mediaPath: string; reminderMorning: string; reminderEvening: string };
 }
 
-const SEED: AdminData = {
-  collections: [
-    { id: 'c1', title: 'Bhagavad Gita', status: 'Published', nodes: '18 Chapters', units: '700 Verses', lang: 'Sanskrit & English' },
-    { id: 'c2', title: 'Ramayana', status: 'Draft', nodes: '7 Kandas', units: '24,000 Verses', lang: 'Sanskrit & Hindi' },
-    { id: 'c3', title: 'Hanuman Chalisa', status: 'Published', nodes: '1 Section', units: '40 Chaupais', lang: 'Awadhi & English' },
-    { id: 'c4', title: 'Vishnu Sahasranamam', status: 'Published', nodes: '1 Chapter', units: '108 Names', lang: 'Sanskrit & English' },
-  ],
-  audio: [
-    { id: 'a1', title: 'BG_C01_V01.mp3', size: '1.2 MB', duration: '0:45', status: 'ready_for_review', user: 'Devi Prasad', progress: 100 },
-    { id: 'a2', title: 'BG_C01_V02.wav', size: '4.8 MB', duration: '0:38', status: 'processing', user: 'Rohan Sharma', progress: 62 },
-    { id: 'a3', title: 'BG_C01_V03.mp3', size: '1.1 MB', duration: '0:52', status: 'published', user: 'Devi Prasad', progress: 100 },
-  ],
-  sankalps: [
-    { id: 's1', title: 'Bhagavad Gita 18 Days', target: 'Complete Gita in 18 days', duration: '40 mins/day', difficulty: 'Intense' },
-    { id: 's2', title: 'Bhagavad Gita 1 Year', target: 'Complete Gita in 1 year', duration: '5 mins/day', difficulty: 'Easy' },
-    { id: 's3', title: 'Hanuman Chalisa Habit', target: 'Recite Chalisa for 40 days', duration: '10 mins/day', difficulty: 'Medium' },
-  ],
-  festivals: [
-    { id: 'f1', name: 'Guru Purnima', date: '2026-07-29', category: 'Hindu', icon: '🪔', status: 'Active' },
-    { id: 'f2', name: 'Raksha Bandhan', date: '2026-08-28', category: 'Hindu', icon: '🎗️', status: 'Active' },
-    { id: 'f3', name: 'Janmashtami', date: '2026-09-04', category: 'Hindu', icon: '🦚', status: 'Active' },
-    { id: 'f4', name: 'Ganesh Chaturthi', date: '2026-09-14', category: 'Hindu', icon: '🐘', status: 'Active' },
-    { id: 'f5', name: 'Sharad Navratri', date: '2026-10-11', category: 'Hindu', icon: '🌺', status: 'Draft' },
-    { id: 'f6', name: 'Diwali', date: '2026-11-08', category: 'Hindu', icon: '🪔', status: 'Active' },
-  ],
-  notifications: [
-    { id: 'n1', title: 'Daily Motivation', category: 'Spiritual', audience: 'All users', status: 'Sent', sentAt: '2026-07-10 08:00' },
-    { id: 'n2', title: 'Gita Chapter 2 Reminder', category: 'Reading', audience: 'Gita readers', status: 'Sent', sentAt: '2026-07-10 18:00' },
-    { id: 'n3', title: 'Guru Purnima Reminder', category: 'Festival', audience: 'All users', status: 'Scheduled', sentAt: '2026-07-28 08:00' },
-  ],
-  audit: [
-    { id: 'l1', actor: 'Pankaj Kumar', email: 'pankaj.kumar@prarthna.com', action: 'Approved audio track BG_C02_V10.mp3', module: 'Audio', date: '2026-07-11 17:32', ip: '192.168.1.42' },
-    { id: 'l2', actor: 'Pankaj Kumar', email: 'pankaj.kumar@prarthna.com', action: 'Seeded Bhagavad Gita scripture nodes', module: 'Content', date: '2026-07-11 16:45', ip: '192.168.1.42' },
-    { id: 'l3', actor: 'System Worker', email: 'system@prarthna.com', action: 'Recalculated sankalp streaks for 8,432 users', module: 'Worker', date: '2026-07-11 02:00', ip: 'localhost' },
-  ],
-  shloka: {
-    date: '2026-07-11',
-    reference: 'Bhagavad Gita — Chapter 4, Verse 7',
-    sanskrit: 'यदा यदा हि धर्मस्य ग्लानिर्भवति भारत।\nअभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम्॥',
-    translation: 'Whenever righteousness wanes and unrighteousness increases, I send myself forth.',
-  },
-  settings: {
-    mediaPath: '/var/lib/prarthna/media',
-    reminderMorning: '08:00',
-    reminderEvening: '18:00',
-  },
+const EMPTY_DATA: AdminData = {
+  collections: [],
+  audio: [],
+  sankalps: [],
+  festivals: [],
+  notifications: [],
+  audit: [],
+  shloka: { date: '', reference: '', sanskrit: '', translation: '' },
+  settings: { mediaPath: '/var/lib/prarthna/media', reminderMorning: '08:00', reminderEvening: '18:00' },
 };
 
-const STORAGE_KEY = 'prarthna-admin-data-v2';
-const API_BASE = 'http://localhost:3001/api/v1';
+// ── Backend → view-model mappers ──────────────────────────────────
 
-/** Typed fetch helper — returns null on network error instead of throwing */
-async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T | null> {
-  try {
-    const res = await fetch(`${API_BASE}${path}`, opts);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+function mapCollection(c: any): Collection {
+  return {
+    id: c.id,
+    title: c.title,
+    status: (c.status as Collection['status']) ?? 'Published',
+    nodes: `${c._count?.nodes ?? 0} Chapters`,
+    units: c.type ?? 'SCRIPTURE',
+    lang: c.description ?? '',
+  };
 }
+
+function mapMedia(m: any): AudioTrack {
+  return {
+    id: m.id,
+    title: m.title ?? m.audioUrl?.split('/').pop() ?? m.id,
+    size: `${((m.size ?? 0) / (1024 * 1024)).toFixed(1)} MB`,
+    duration: m.duration ? `${Math.floor(m.duration / 60)}:${String(m.duration % 60).padStart(2, '0')}` : '—',
+    status: (m.status as AudioTrack['status']) ?? 'published',
+    user: m.uploadedBy ?? 'Admin',
+    progress: 100,
+    audioUrl: m.audioUrl,
+  };
+}
+
+function mapAudit(l: any): AuditEntry {
+  return {
+    id: l.id,
+    actor: l.actorEmail ? l.actorEmail.split('@')[0] : (l.user?.email ?? 'System'),
+    email: l.actorEmail ?? l.user?.email ?? 'system@prarthna.app',
+    action: l.action,
+    module: l.entityName,
+    date: new Date(l.createdAt).toLocaleString(),
+    ip: l.ip ?? '—',
+  };
+}
+
+function mapNotification(n: any): NotificationItem {
+  return {
+    id: n.id,
+    title: n.title,
+    category: n.category,
+    audience: n.audience,
+    status: (n.status as NotificationItem['status']) ?? 'Scheduled',
+    sentAt: n.sentAt ? new Date(n.sentAt).toLocaleString() : '—',
+  };
+}
+
+// ── Store contract ────────────────────────────────────────────────
 
 interface StoreValue {
   data: AdminData;
@@ -169,7 +188,25 @@ interface StoreValue {
   apiLoading: boolean;
   toasts: Toast[];
   toast: (message: string, kind?: Toast['kind']) => void;
-  update: (fn: (d: AdminData) => AdminData, auditAction?: { action: string; module: string }) => void;
+  refresh: () => Promise<void>;
+  actions: {
+    createCollection: (input: { title: string; type: string; description?: string }) => Promise<boolean>;
+    setCollectionStatus: (id: string, status: 'Published' | 'Draft') => Promise<boolean>;
+    createFestival: (input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
+    updateFestival: (id: string, input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
+    deleteFestival: (id: string) => Promise<boolean>;
+    createTemplate: (input: Omit<SankalpTemplate, 'id'>) => Promise<boolean>;
+    updateTemplate: (id: string, input: Omit<SankalpTemplate, 'id'>) => Promise<boolean>;
+    deleteTemplate: (id: string) => Promise<boolean>;
+    createNotification: (input: { title: string; category: string; audience: string; status: 'Sent' | 'Scheduled'; sentAt?: string }) => Promise<boolean>;
+    deleteNotification: (id: string) => Promise<boolean>;
+    saveShloka: (input: ShlokaSchedule) => Promise<boolean>;
+    saveSettings: (value: AdminData['settings']) => Promise<boolean>;
+    uploadAudio: (file: File, contentUnitId: string, title?: string) => Promise<boolean>;
+    setAudioStatus: (id: string, status: string) => Promise<boolean>;
+    listNodes: (collectionId: string) => Promise<ContentNodeOption[]>;
+    listUnits: (nodeId: string) => Promise<ContentUnitOption[]>;
+  };
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -177,7 +214,7 @@ const StoreContext = createContext<StoreValue | null>(null);
 let toastSeq = 0;
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<AdminData>(SEED);
+  const [data, setData] = useState<AdminData>(EMPTY_DATA);
   const [ready, setReady] = useState(false);
   const [connected, setConnected] = useState(false);
   const [apiLoading, setApiLoading] = useState(true);
@@ -189,136 +226,141 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
   }, []);
 
-  useEffect(() => {
-    // Restore persisted data
+  const refresh = useCallback(async () => {
+    setApiLoading(true);
+    const authed = Boolean(getAdminToken());
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setData({ ...SEED, ...JSON.parse(raw) });
-    } catch {
-      /* corrupted storage — fall back to seed */
-    }
-    setReady(true);
-
-    // Sync from all backend endpoints in parallel
-    const syncBackend = async () => {
-      setApiLoading(true);
-      let anyConnected = false;
-
-      const [collections, festivals, auditLogs] = await Promise.all([
-        apiFetch<any[]>('/content/collections'),
-        apiFetch<any[]>('/festivals'),
-        apiFetch<any[]>('/audit'),
+      // Public reads always work; admin-only reads need the session token.
+      const [collections, festivals, templates, shloka] = await Promise.all([
+        apiGet<any[]>('/content/collections'),
+        apiGet<any[]>('/festivals'),
+        apiGet<any[]>('/templates'),
+        apiGet<any | null>('/shloka/today'),
       ]);
+      const [audit, notifications, media, settings] = authed
+        ? await Promise.all([
+            apiGet<{ items: any[] }>('/audit').catch(() => ({ items: [] })),
+            apiGet<any[]>('/notifications').catch(() => []),
+            apiGet<any[]>('/content/media').catch(() => []),
+            apiGet<Record<string, any>>('/settings').catch(() => ({})),
+          ])
+        : [{ items: [] }, [], [], {}];
 
-      setData((prev) => {
-        let next = { ...prev };
-
-        if (collections && Array.isArray(collections)) {
-          next.collections = collections.length > 0
-            ? collections.map((c: any) => ({
-                id: c.id,
-                title: c.title,
-                status: 'Published' as const,
-                nodes: `${c._count?.nodes ?? 0} Chapters`,
-                units: 'Verses loaded',
-                lang: 'Sanskrit & English',
-              }))
-            : prev.collections;
-          anyConnected = true;
-        }
-
-        if (festivals && Array.isArray(festivals)) {
-          next.festivals = festivals.map((f: any) => ({
-            id: f.id,
-            name: f.name,
-            date: f.date,
-            category: f.category,
-            icon: f.icon,
-            status: (f.status as 'Active' | 'Draft') ?? 'Active',
-          }));
-          anyConnected = true;
-        }
-
-        if (auditLogs && Array.isArray(auditLogs)) {
-          const mapped: AuditEntry[] = auditLogs.map((l: any) => ({
-            id: l.id,
-            actor: l.userId ?? 'System',
-            email: l.user?.email ?? 'system@prarthna.com',
-            action: l.action,
-            module: l.entityName,
-            date: new Date(l.createdAt ?? Date.now()).toLocaleString(),
-            ip: '—',
-          }));
-          if (mapped.length > 0) {
-            next.audit = mapped;
-            anyConnected = true;
-          }
-        }
-
-        return next;
-      });
-
-      setConnected(anyConnected);
-      if (anyConnected) {
-        toast('Connected to NestJS API — data synced from PostgreSQL', 'success');
+      setData((prev) => ({
+        collections: collections.map(mapCollection),
+        festivals: festivals.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          date: f.date,
+          category: f.category,
+          icon: f.icon,
+          status: (f.status as FestivalItem['status']) ?? 'Active',
+        })),
+        sankalps: templates.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          target: t.target,
+          duration: t.duration,
+          difficulty: t.difficulty as SankalpTemplate['difficulty'],
+        })),
+        shloka: shloka
+          ? {
+              date: shloka.date,
+              reference: shloka.reference,
+              sanskrit: shloka.sanskrit,
+              translation: shloka.translation,
+            }
+          : prev.shloka,
+        audit: audit.items.map(mapAudit),
+        notifications: notifications.map(mapNotification),
+        audio: media.map(mapMedia),
+        settings: {
+          mediaPath: settings.mediaPath ?? prev.settings.mediaPath,
+          reminderMorning: settings.reminderMorning ?? prev.settings.reminderMorning,
+          reminderEvening: settings.reminderEvening ?? prev.settings.reminderEvening,
+        },
+      }));
+      setConnected(true);
+    } catch (e) {
+      setConnected(false);
+      if (e instanceof ApiError && e.status !== 401) {
+        toast(e.message, 'error');
       }
+    } finally {
       setApiLoading(false);
-    };
-
-    syncBackend();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const persist = useRef((d: AdminData) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-    } catch {
-      /* storage full/unavailable — state still works in-memory */
+      setReady(true);
     }
-  });
+  }, [toast]);
 
-  const update = useCallback(
-    (fn: (d: AdminData) => AdminData, auditAction?: { action: string; module: string }) => {
-      setData((prev) => {
-        let next = fn(prev);
-        if (auditAction) {
-          const now = new Date();
-          const stamp = `${now.toISOString().slice(0, 10)} ${now.toTimeString().slice(0, 5)}`;
-          next = {
-            ...next,
-            audit: [
-              {
-                id: `l${Date.now()}`,
-                actor: 'Pankaj Kumar',
-                email: 'pankaj.kumar@prarthna.com',
-                action: auditAction.action,
-                module: auditAction.module,
-                date: stamp,
-                ip: '192.168.1.42',
-              },
-              ...next.audit,
-            ].slice(0, 50),
-          };
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-          // Fire-and-forget sync to real audit DB
-          apiFetch('/audit/log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              entityName: auditAction.module,
-              action: auditAction.action,
-            }),
-          });
-        }
-        persist.current(next);
-        return next;
-      });
+  /** Wrap a mutation: run, toast errors, refresh state from the backend. */
+  const run = useCallback(
+    async (fn: () => Promise<unknown>, successMessage?: string): Promise<boolean> => {
+      try {
+        await fn();
+        if (successMessage) toast(successMessage);
+        await refresh();
+        return true;
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'Request failed', 'error');
+        return false;
+      }
     },
-    [],
+    [refresh, toast],
   );
 
+  const actions: StoreValue['actions'] = {
+    createCollection: (input) =>
+      run(() => apiPost('/content/collections', input), `Collection "${input.title}" created`),
+    setCollectionStatus: (id, status) =>
+      run(() => apiPatch(`/content/collections/${id}/status`, { status })),
+    createFestival: (input) =>
+      run(() => apiPost('/festivals', input), `Festival "${input.name}" created`),
+    updateFestival: (id, input) =>
+      run(() => apiPatch(`/festivals/${id}`, input), `Festival "${input.name}" updated`),
+    deleteFestival: (id) => run(() => apiDelete(`/festivals/${id}`), 'Festival deleted'),
+    createTemplate: (input) =>
+      run(() => apiPost('/templates', input), `Template "${input.title}" created`),
+    updateTemplate: (id, input) =>
+      run(() => apiPatch(`/templates/${id}`, input), `Template "${input.title}" updated`),
+    deleteTemplate: (id) => run(() => apiDelete(`/templates/${id}`), 'Template deleted'),
+    createNotification: (input) =>
+      run(
+        () => apiPost('/notifications', input),
+        input.status === 'Sent' ? 'Notification sent to users' : 'Notification scheduled',
+      ),
+    deleteNotification: (id) =>
+      run(() => apiDelete(`/notifications/${id}`), 'Notification removed'),
+    saveShloka: (input) =>
+      run(() => apiPut('/shloka', input), `Daily shloka scheduled for ${input.date}`),
+    saveSettings: (value) =>
+      run(() => apiPut('/settings', { value }), 'Settings saved'),
+    uploadAudio: (file, contentUnitId, title) => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('contentUnitId', contentUnitId);
+      if (title) form.append('title', title);
+      return run(() => apiUpload('/content/media/upload', form), `Uploaded ${title ?? file.name}`);
+    },
+    setAudioStatus: (id, status) =>
+      run(() => apiPatch(`/content/media/${id}/status`, { status })),
+    listNodes: async (collectionId) => {
+      const detail = await apiGet<any>(`/content/collections/${collectionId}`);
+      return (detail.nodes ?? []).map((n: any) => ({ id: n.id, title: n.title }));
+    },
+    listUnits: async (nodeId) => {
+      const detail = await apiGet<any>(`/content/nodes/${nodeId}`);
+      return (detail.units ?? []).map((u: any) => ({ id: u.id, verseNumber: u.verseNumber }));
+    },
+  };
+
   return (
-    <StoreContext.Provider value={{ data, ready, connected, apiLoading, toasts, toast, update }}>
+    <StoreContext.Provider
+      value={{ data, ready, connected, apiLoading, toasts, toast, refresh, actions }}
+    >
       {children}
     </StoreContext.Provider>
   );

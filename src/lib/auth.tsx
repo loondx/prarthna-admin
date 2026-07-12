@@ -18,7 +18,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const API_BASE = 'http://localhost:3001/api/v1';
+const API_BASE = `${(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')}/api/v1`;
 const COOKIE_NAME = 'prarthna_admin_token';
 
 function getCookie(name: string): string | null {

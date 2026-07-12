@@ -15,7 +15,7 @@ const CLICKS = [
 ];
 
 export default function NotificationsPage() {
-  const { data, update, toast } = useStore();
+  const { data, actions, toast } = useStore();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: '',
@@ -25,48 +25,31 @@ export default function NotificationsPage() {
     date: '',
   });
 
-  const send = () => {
+  const send = async () => {
     if (!form.title.trim()) {
       toast('Notification title is required', 'error');
       return;
     }
     const isNow = form.schedule === 'now';
-    const now = new Date();
-    const stamp = isNow
-      ? `${now.toISOString().slice(0, 10)} ${now.toTimeString().slice(0, 5)}`
-      : `${form.date || now.toISOString().slice(0, 10)} 08:00`;
-
-    update(
-      (d) => ({
-        ...d,
-        notifications: [
-          {
-            id: `n${Date.now()}`,
-            title: form.title.trim(),
-            category: form.category,
-            audience: form.audience,
-            status: isNow ? 'Sent' : 'Scheduled',
-            sentAt: stamp,
-          },
-          ...d.notifications,
-        ],
-      }),
-      {
-        action: `${isNow ? 'Sent' : 'Scheduled'} notification "${form.title.trim()}"`,
-        module: 'Notifications',
-      },
-    );
-    toast(isNow ? 'Notification sent to users' : 'Notification scheduled');
-    setOpen(false);
-    setForm({ title: '', category: 'Spiritual', audience: 'All users', schedule: 'now', date: '' });
+    const ok = await actions.createNotification({
+      title: form.title.trim(),
+      category: form.category,
+      audience: form.audience,
+      status: isNow ? 'Sent' : 'Scheduled',
+      sentAt: isNow
+        ? undefined
+        : new Date(
+            `${form.date || new Date().toISOString().slice(0, 10)}T08:00:00`,
+          ).toISOString(),
+    });
+    if (ok) {
+      setOpen(false);
+      setForm({ title: '', category: 'Spiritual', audience: 'All users', schedule: 'now', date: '' });
+    }
   };
 
-  const remove = (id: string, title: string) => {
-    update(
-      (d) => ({ ...d, notifications: d.notifications.filter((n) => n.id !== id) }),
-      { action: `Deleted notification "${title}"`, module: 'Notifications' },
-    );
-    toast('Notification removed', 'info');
+  const remove = async (id: string, _title: string) => {
+    await actions.deleteNotification(id);
   };
 
   return (

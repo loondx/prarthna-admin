@@ -13,7 +13,7 @@ const EMPTY: Omit<FestivalItem, 'id'> = {
 };
 
 export default function FestivalsPage() {
-  const { data, update, toast } = useStore();
+  const { data, actions, toast } = useStore();
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<FestivalItem | null>(null);
   const [creating, setCreating] = useState(false);
@@ -48,70 +48,16 @@ export default function FestivalsPage() {
       toast('Name and date are required', 'error');
       return;
     }
-    if (creating) {
-      try {
-        const res = await fetch('http://localhost:3001/api/v1/festivals', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-        if (res.ok) {
-          const newFest = await res.json();
-          update(
-            (d) => ({
-              ...d,
-              festivals: [...d.festivals, newFest],
-            }),
-            { action: `Created festival "${form.name}"`, module: 'Festivals' },
-          );
-          toast(`Festival "${form.name}" created`);
-        } else {
-          toast('Failed to save festival to backend', 'error');
-        }
-      } catch (err) {
-        update(
-          (d) => ({
-            ...d,
-            festivals: [...d.festivals, { ...form, id: `f${Date.now()}` }],
-          }),
-          { action: `Created festival "${form.name}" (Local)`, module: 'Festivals' },
-        );
-        toast(`Festival "${form.name}" created locally`);
-      }
-    } else if (editing) {
-      update(
-        (d) => ({
-          ...d,
-          festivals: d.festivals.map((f) => (f.id === editing.id ? { ...f, ...form } : f)),
-        }),
-        { action: `Updated festival "${form.name}"`, module: 'Festivals' },
-      );
-      toast(`Festival "${form.name}" updated`);
-    }
-    close();
+    const ok = creating
+      ? await actions.createFestival(form)
+      : editing
+        ? await actions.updateFestival(editing.id, form)
+        : false;
+    if (ok) close();
   };
 
   const confirmRemove = async (f: FestivalItem) => {
-    try {
-      const res = await fetch(`http://localhost:3001/api/v1/festivals/${f.id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        update(
-          (d) => ({ ...d, festivals: d.festivals.filter((x) => x.id !== f.id) }),
-          { action: `Deleted festival "${f.name}"`, module: 'Festivals' },
-        );
-        toast(`Festival "${f.name}" deleted`);
-      } else {
-        toast('Failed to delete festival from backend', 'error');
-      }
-    } catch (err) {
-      update(
-        (d) => ({ ...d, festivals: d.festivals.filter((x) => x.id !== f.id) }),
-        { action: `Deleted festival "${f.name}" (Local)`, module: 'Festivals' },
-      );
-      toast(`Festival "${f.name}" deleted locally`, 'info');
-    }
+    await actions.deleteFestival(f.id);
   };
 
   return (
