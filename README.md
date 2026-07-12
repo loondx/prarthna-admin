@@ -57,8 +57,11 @@ pnpm build
 
 The panel is a stateless Next.js app that talks to the API over HTTPS.
 
-1. **Environment** — set `NEXT_PUBLIC_API_URL` to the API's public base URL (no trailing slash,
-   no `/api/v1`). It is inlined at build time, so build after setting it.
+1. **Environment** — `NEXT_PUBLIC_API_URL` is the API base URL (no trailing slash, no `/api/v1`).
+   Per-environment defaults are committed: `.env.production` → `https://api.foregrowsolutions.com`
+   (used by `next build`/`start`) and `.env.development` → `http://localhost:3001` (used by `next dev`).
+   It is inlined at build time — rebuild after changing it. **Do not put `.env.local` on the
+   production server**; it overrides everything and is only for personal local overrides.
 2. **Build & run**
    ```bash
    pnpm install --frozen-lockfile
