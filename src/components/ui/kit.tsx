@@ -77,7 +77,7 @@ export function Modal({
 /* ------------------------------ Form bits ------------------------------- */
 
 export const inputCls =
-  'w-full bg-[#FAF6F0] border border-[#EFE6DD] rounded-lg p-2.5 text-xs text-[#2D1E17] focus:outline-none focus:border-[#8C5A3C] transition-colors';
+  'w-full bg-white border border-[#EFE6DD] rounded-lg p-2.5 text-xs text-[#2D1E17] focus:outline-none focus:border-[#8C5A3C] transition-colors';
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

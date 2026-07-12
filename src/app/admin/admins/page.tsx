@@ -17,15 +17,12 @@ interface AdminUser {
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
-  editor: 'Content Editor',
-  reviewer: 'Reviewer',
-  audio_manager: 'Audio Manager',
 };
 
-const EMPTY = { email: '', password: '', name: '', role: 'editor' };
+const EMPTY = { email: '', password: '', name: '', role: 'super_admin' };
 
 export default function AdminUsersPage() {
-  const { token } = useAuth();
+  const { token, session } = useAuth();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -163,7 +160,7 @@ export default function AdminUsersPage() {
                     : 'Never'}
                 </td>
                 <td className="px-6 py-4">
-                  {admin.role !== 'super_admin' && admin.isActive && (
+                  {admin.id !== session?.id && admin.isActive && (
                     <button
                       onClick={() => handleDeactivate(admin.id, admin.name)}
                       className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-[10px] px-3 py-1.5 rounded-lg transition-all"
@@ -171,8 +168,11 @@ export default function AdminUsersPage() {
                       Deactivate
                     </button>
                   )}
-                  {admin.role === 'super_admin' && (
-                    <span className="text-[10px] text-[#8C7E77]">Protected</span>
+                  {admin.id === session?.id && (
+                    <span className="text-[10px] text-[#8C7E77] font-semibold bg-[#8C7E77]/10 px-2 py-1 rounded-full">Current User</span>
+                  )}
+                  {!admin.isActive && (
+                    <span className="text-[10px] text-red-500 font-semibold bg-red-50 px-2 py-1 rounded-full">Inactive</span>
                   )}
                 </td>
               </tr>
@@ -217,17 +217,6 @@ export default function AdminUsersPage() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="••••••••"
             />
-          </Field>
-          <Field label="Role">
-            <select
-              className={inputCls}
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })}
-            >
-              <option value="editor">Content Editor</option>
-              <option value="reviewer">Reviewer</option>
-              <option value="audio_manager">Audio Manager</option>
-            </select>
           </Field>
 
           {formError && (

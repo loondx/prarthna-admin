@@ -98,7 +98,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="username"
                 required
-                className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-amber-400/60 focus:bg-white/10 transition-all"
+                className="w-full bg-[#1A100A] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-amber-400/60 focus:bg-black/50 transition-all"
                 placeholder="admin@prarthna.com"
               />
             </div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
-                  className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-white/30 focus:outline-none focus:border-amber-400/60 focus:bg-white/10 transition-all"
+                  className="w-full bg-[#1A100A] border border-white/10 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-white/30 focus:outline-none focus:border-amber-400/60 focus:bg-black/50 transition-all"
                   placeholder="••••••••"
                 />
                 <button
