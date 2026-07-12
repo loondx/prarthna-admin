@@ -16,7 +16,7 @@ export function proxy(req: NextRequest) {
 
   // Redirect root to dashboard
   if (pathname === '/') {
-    return NextResponse.redirect(new URL('/admin/dashboard', req.url));
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
   // Check for admin session token in cookies

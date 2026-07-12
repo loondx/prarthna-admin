@@ -1,21 +1,24 @@
 # Prarthna Platform - Next.js Admin Dashboard
 
-This directory houses the standalone Next.js 15.1 administrative panel. It connects exclusively to the NestJS API gateway for updating scripture content, scheduling habits, uploading chanting audios, and monitoring analytics.
+This directory houses the standalone Next.js 16 administrative panel. It connects exclusively to the NestJS API gateway for updating scripture content, scheduling habits, uploading chanting audios, and monitoring analytics.
 
 ## Folder Structure
 
 ```
 prarthna-admin/
 ├── src/
-│   └── app/               # Next.js App Router (Layouts & Pages)
-│       ├── admin/
-│       │   ├── audio/     # Audio Studio panel
-│       │   ├── audit/     # Audit activity list
-│       │   ├── content/   # Scripture library publisher
-│       │   ├── dashboard/ # System statistics overview
-│       │   └── layout.tsx # Role-aware navigation sidebar layout
-│       ├── globals.css    # Core styling tokens
-│       └── page.tsx       # Root entry redirector
+│   ├── app/               # Next.js App Router — one dir per section
+│   │   ├── dashboard/     # Live statistics from /admin/stats
+│   │   ├── content/       # Collections (create, publish/unpublish)
+│   │   ├── audio/         # Real uploads → /content/media/upload + review queue
+│   │   ├── shloka/ sankalp/ festivals/ notifications/ admins/ settings/ audit/
+│   │   ├── layout.tsx     # Navigation sidebar layout
+│   │   └── page.tsx       # Root entry redirector
+│   ├── lib/
+│   │   ├── api.ts         # Central typed API client (env base URL, JWT header, 401 handling)
+│   │   ├── store.tsx      # Backend-driven data store + typed mutation actions
+│   │   └── auth.tsx       # Admin session (JWT cookie ↔ /admin/login, /admin/me)
+│   └── proxy.ts           # Route gate: redirects unauthenticated visits to /login
 ├── package.json           # Scripts and dependencies
 └── pnpm-workspace.yaml    # Node workspaces configuration
 ```

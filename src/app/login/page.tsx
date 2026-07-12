@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && session) {
-      const from = searchParams.get('from') ?? '/admin/dashboard';
+      const from = searchParams.get('from') ?? '/dashboard';
       router.replace(from);
     }
   }, [session, loading, router, searchParams]);
@@ -37,7 +37,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      const from = searchParams.get('from') ?? '/admin/dashboard';
+      const from = searchParams.get('from') ?? '/dashboard';
       router.replace(from);
     } catch (err: any) {
       setError(err.message ?? 'Login failed. Check your credentials.');

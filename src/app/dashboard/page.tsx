@@ -76,7 +76,7 @@ export default function DashboardPage() {
       subtext: statsLoading ? 'Loading from DB…' : `${liveStats?.totalSankalps ?? 0} active sankalps`,
       icon: '👤',
       color: 'from-[#8C5A3C] to-[#D99B26]',
-      href: '/admin/dashboard',
+      href: '/dashboard',
     },
     {
       name: 'Published Collections',
@@ -84,7 +84,7 @@ export default function DashboardPage() {
       subtext: statsLoading ? 'Loading from DB…' : `${data.collections.length - published} in draft`,
       icon: '📚',
       color: 'from-[#4E785A] to-[#6A8F74]',
-      href: '/admin/content',
+      href: '/content',
     },
     {
       name: 'Audio Tracks Live',
@@ -92,7 +92,7 @@ export default function DashboardPage() {
       subtext: `${data.audio.length - audioPublished} in pipeline`,
       icon: '🎙️',
       color: 'from-[#E05B35] to-[#8C5A3C]',
-      href: '/admin/audio',
+      href: '/audio',
     },
     {
       name: 'Active Festivals',
@@ -100,7 +100,7 @@ export default function DashboardPage() {
       subtext: `${scheduled} notification${scheduled === 1 ? '' : 's'} scheduled`,
       icon: '🪔',
       color: 'from-[#8C5A3C] to-[#A67C52]',
-      href: '/admin/festivals',
+      href: '/festivals',
     },
   ];
 
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             <h2 className="text-lg font-bold text-[#2D1E17] flex items-center gap-2">
               <span>🪔</span> Upcoming Festivals
             </h2>
-            <Link href="/admin/festivals" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
+            <Link href="/festivals" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
               Manage →
             </Link>
           </div>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                 </span>
               )}
             </h2>
-            <Link href="/admin/audit" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
+            <Link href="/audit" className="text-[11px] font-bold text-[#8C5A3C] hover:underline">
               View all →
             </Link>
           </div>
