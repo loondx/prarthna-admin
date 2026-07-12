@@ -242,9 +242,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             apiGet<{ items: any[] }>('/audit').catch(() => ({ items: [] })),
             apiGet<any[]>('/notifications').catch(() => []),
             apiGet<any[]>('/content/media').catch(() => []),
-            apiGet<Record<string, any>>('/settings').catch(() => ({})),
+            apiGet<Record<string, any>>('/settings').catch(() => ({} as Record<string, any>)),
           ])
-        : [{ items: [] }, [], [], {}];
+        : [{ items: [] } as { items: any[] }, [] as any[], [] as any[], {} as Record<string, any>];
 
       setData((prev) => ({
         collections: collections.map(mapCollection),

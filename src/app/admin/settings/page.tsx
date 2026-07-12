@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store';
 import { Field, PrimaryBtn, inputCls } from '@/components/ui/kit';
 
 export default function SettingsPage() {
-  const { data, ready, actions } = useStore();
+  const { data, ready, connected, actions } = useStore();
   const [mediaPath, setMediaPath] = useState(data.settings.mediaPath);
   const [morning, setMorning] = useState(data.settings.reminderMorning);
   const [evening, setEvening] = useState(data.settings.reminderEvening);
