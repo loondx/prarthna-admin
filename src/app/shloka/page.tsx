@@ -11,6 +11,7 @@ const EMPTY: ShlokaSchedule = {
   reference: '',
   sanskrit: '',
   translation: '',
+  translationHindi: '',
 };
 
 export default function DailyShlokaPage() {
@@ -52,6 +53,7 @@ export default function DailyShlokaPage() {
       reference: form.reference.trim(),
       sanskrit: form.sanskrit,
       translation: form.translation,
+      translationHindi: form.translationHindi || undefined,
     });
     setSaving(false);
     if (ok) {
@@ -103,10 +105,15 @@ export default function DailyShlokaPage() {
                 {data.shloka.sanskrit}
               </p>
               <p className="text-xs text-[#8C7E77] font-medium">{data.shloka.reference}</p>
-              <div className="text-left pt-4 border-t border-[#EFE6DD] text-xs text-[#8C7E77]">
+              <div className="text-left pt-4 border-t border-[#EFE6DD] text-xs text-[#8C7E77] space-y-2">
                 <p>
-                  <strong className="text-[#2D1E17]">Translation:</strong> {data.shloka.translation}
+                  <strong className="text-[#2D1E17]">Translation (English):</strong> {data.shloka.translation}
                 </p>
+                {data.shloka.translationHindi && (
+                  <p>
+                    <strong className="text-[#2D1E17]">Hindi Translation:</strong> {data.shloka.translationHindi}
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -144,12 +151,20 @@ export default function DailyShlokaPage() {
                 placeholder="देवनागरी…"
               />
             </Field>
-            <Field label="Translation *">
+            <Field label="Translation (English) *">
               <textarea
                 className={`${inputCls} min-h-20`}
                 value={form.translation}
                 onChange={(e) => setForm({ ...form, translation: e.target.value })}
                 placeholder="English translation"
+              />
+            </Field>
+            <Field label="Hindi Translation">
+              <textarea
+                className={`${inputCls} min-h-20`}
+                value={form.translationHindi ?? ''}
+                onChange={(e) => setForm({ ...form, translationHindi: e.target.value })}
+                placeholder="Hindi translation"
               />
             </Field>
             <PrimaryBtn className="w-full" onClick={saveShloka} disabled={saving}>

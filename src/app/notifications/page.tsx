@@ -14,6 +14,7 @@ export default function NotificationsPage() {
     audience: 'All users',
     schedule: 'now',
     date: '',
+    description: '',
   });
 
   const send = async () => {
@@ -27,6 +28,7 @@ export default function NotificationsPage() {
       category: form.category,
       audience: form.audience,
       status: isNow ? 'Sent' : 'Scheduled',
+      description: form.description.trim() || undefined,
       sentAt: isNow
         ? undefined
         : new Date(
@@ -35,7 +37,7 @@ export default function NotificationsPage() {
     });
     if (ok) {
       setOpen(false);
-      setForm({ title: '', category: 'Spiritual', audience: 'All users', schedule: 'now', date: '' });
+      setForm({ title: '', category: 'Spiritual', audience: 'All users', schedule: 'now', date: '', description: '' });
     }
   };
 

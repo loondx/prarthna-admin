@@ -75,6 +75,7 @@ export interface NotificationItem {
   audience: string;
   status: 'Sent' | 'Scheduled';
   sentAt: string;
+  description?: string;
 }
 
 export interface AuditEntry {
@@ -207,6 +208,7 @@ function mapNotification(n: any): NotificationItem {
     audience: n.audience,
     status: (n.status as NotificationItem['status']) ?? 'Scheduled',
     sentAt: n.sentAt ? new Date(n.sentAt).toLocaleString() : '—',
+    description: n.description ?? '',
   };
 }
 
