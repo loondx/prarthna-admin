@@ -4,12 +4,14 @@ import React, { useMemo, useState } from 'react';
 import { useStore, FestivalItem } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, StatusBadge, inputCls } from '@/components/ui/kit';
 
-const EMPTY: Omit<FestivalItem, 'id'> = {
+const EMPTY = {
   name: '',
   date: '',
   category: 'Hindu',
   icon: '🪔',
-  status: 'Active',
+  status: 'Active' as FestivalItem['status'],
+  description: '',
+  observances: '',
 };
 
 export default function FestivalsPage() {
@@ -34,7 +36,15 @@ export default function FestivalsPage() {
   };
 
   const openEdit = (f: FestivalItem) => {
-    setForm({ name: f.name, date: f.date, category: f.category, icon: f.icon, status: f.status });
+    setForm({
+      name: f.name,
+      date: f.date,
+      category: f.category,
+      icon: f.icon,
+      status: f.status,
+      description: f.description ?? '',
+      observances: (f.observances ?? []).join('\n'),
+    });
     setEditing(f);
   };
 
@@ -48,10 +58,19 @@ export default function FestivalsPage() {
       toast('Name and date are required', 'error');
       return;
     }
+    const payload = {
+      name: form.name.trim(),
+      date: form.date,
+      category: form.category,
+      icon: form.icon,
+      status: form.status,
+      description: form.description.trim() || undefined,
+      observances: form.observances.split('\n').map(x => x.trim()).filter(Boolean),
+    };
     const ok = creating
-      ? await actions.createFestival(form)
+      ? await actions.createFestival(payload as any)
       : editing
-        ? await actions.updateFestival(editing.id, form)
+        ? await actions.updateFestival(editing.id, payload as any)
         : false;
     if (ok) close();
   };
@@ -178,6 +197,22 @@ export default function FestivalsPage() {
               </select>
             </Field>
           </div>
+          <Field label="Description">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="e.g. Celebrates the birth of Lord Hanuman..."
+            />
+          </Field>
+          <Field label="Observances (one per line)">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={form.observances}
+              onChange={(e) => setForm({ ...form, observances: e.target.value })}
+              placeholder="e.g. Fasting&#10;Chanting Hanuman Chalisa&#10;Visiting temples"
+            />
+          </Field>
           <div className="flex justify-end gap-3 pt-2">
             <GhostBtn onClick={close}>Cancel</GhostBtn>
             <PrimaryBtn onClick={save}>{creating ? 'Create Festival' : 'Save Changes'}</PrimaryBtn>

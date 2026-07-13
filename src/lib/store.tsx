@@ -298,6 +298,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           category: f.category,
           icon: f.icon,
           status: (f.status as FestivalItem['status']) ?? 'Active',
+          description: f.description ?? '',
+          observances: f.observances ?? [],
         })),
         sankalps: templates.map((t: any) => ({
           id: t.id,
