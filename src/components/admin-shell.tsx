@@ -78,6 +78,7 @@ interface NavigationItem {
 const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },
   { name: 'Content Library', href: '/content', icon: '📚' },
+  { name: 'Manage Prayers', href: '/prayers', icon: '🙏' },
   { name: 'Audio Studio', href: '/audio', icon: '🎙️' },
   { name: 'Daily Shloka', href: '/shloka', icon: '🕉️' },
   { name: 'Sankalp Templates', href: '/sankalp', icon: '📝' },

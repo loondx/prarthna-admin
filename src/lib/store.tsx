@@ -64,6 +64,8 @@ export interface FestivalItem {
   category: string;
   icon: string;
   status: 'Active' | 'Draft';
+  description?: string;
+  observances?: string[];
 }
 
 export interface NotificationItem {
@@ -115,6 +117,7 @@ export interface VerseUnit {
   contentSanskrit: string;
   transliteration: string;
   contentEnglish: string;
+  audioUrl?: string;
 }
 
 export interface VerseInput {
@@ -434,6 +437,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         contentSanskrit: u.contentSanskrit ?? '',
         transliteration: u.transliteration ?? '',
         contentEnglish: u.contentEnglish ?? '',
+        audioUrl: u.mediaAssets?.[0]?.audioUrl ?? undefined,
       }));
     },
     createChapter: (collectionId, title, order, extra) =>
