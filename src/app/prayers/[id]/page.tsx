@@ -429,8 +429,9 @@ export default function PrayerDetailsPage() {
         title={chapterModal === 'create' ? 'Add Section/Chapter' : 'Edit Section/Chapter'}
         open={chapterModal !== null}
         onClose={() => setChapterModal(null)}
+        disableOutsideClick={true}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 pt-2">
           <Field label="Section title *">
             <input
               className={inputCls}
@@ -458,7 +459,7 @@ export default function PrayerDetailsPage() {
               placeholder="Brief introductory summary for this prayer section..."
             />
           </Field>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#EFE6DD] mt-6">
             <GhostBtn onClick={() => setChapterModal(null)}>Cancel</GhostBtn>
             <PrimaryBtn onClick={saveChapter}>
               {chapterModal === 'create' ? 'Add Section' : 'Save Changes'}
@@ -472,16 +473,28 @@ export default function PrayerDetailsPage() {
         title={verseModal === 'create' ? 'Add Verse' : 'Edit Verse'}
         open={verseModal !== null}
         onClose={() => setVerseModal(null)}
+        disableOutsideClick={true}
+        size="xl"
       >
-        <div className="space-y-4">
-          <Field label="Verse reference *">
-            <input
-              className={inputCls}
-              value={verseForm.verseNumber}
-              onChange={(e) => setVerseForm({ ...verseForm, verseNumber: e.target.value })}
-              placeholder="e.g. Verse 1"
-            />
-          </Field>
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto px-1 pt-2">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Verse reference *">
+              <input
+                className={inputCls}
+                value={verseForm.verseNumber}
+                onChange={(e) => setVerseForm({ ...verseForm, verseNumber: e.target.value })}
+                placeholder="e.g. Verse 1"
+              />
+            </Field>
+            <Field label="Image URL">
+              <input
+                className={inputCls}
+                value={verseForm.imageUrl ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, imageUrl: e.target.value })}
+                placeholder="Optional image URL"
+              />
+            </Field>
+          </div>
           <Field label="Sanskrit text *">
             <textarea
               className={`${inputCls} min-h-20 font-serif`}
@@ -498,21 +511,24 @@ export default function PrayerDetailsPage() {
               placeholder="Optional roman transliteration"
             />
           </Field>
-          <Field label="English translation *">
-            <textarea
-              className={`${inputCls} min-h-20`}
-              value={verseForm.contentEnglish}
-              onChange={(e) => setVerseForm({ ...verseForm, contentEnglish: e.target.value })}
-            />
-          </Field>
-          <Field label="Hindi translation">
-            <textarea
-              className={`${inputCls} min-h-20`}
-              value={verseForm.translationHindi ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, translationHindi: e.target.value })}
-              placeholder="Optional Hindi translation"
-            />
-          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="English translation *">
+              <textarea
+                className={`${inputCls} min-h-20`}
+                value={verseForm.contentEnglish}
+                onChange={(e) => setVerseForm({ ...verseForm, contentEnglish: e.target.value })}
+                placeholder="English translation..."
+              />
+            </Field>
+            <Field label="Hindi translation">
+              <textarea
+                className={`${inputCls} min-h-20`}
+                value={verseForm.translationHindi ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, translationHindi: e.target.value })}
+                placeholder="Hindi translation..."
+              />
+            </Field>
+          </div>
           <Field label="Simple Explanation">
             <textarea
               className={`${inputCls} min-h-20`}
@@ -529,31 +545,25 @@ export default function PrayerDetailsPage() {
               placeholder="Optional life lesson"
             />
           </Field>
-          <Field label="Key Message">
-            <textarea
-              className={`${inputCls} min-h-16`}
-              value={verseForm.keyMessage ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, keyMessage: e.target.value })}
-              placeholder="Optional key message"
-            />
-          </Field>
-          <Field label="Benefits">
-            <textarea
-              className={`${inputCls} min-h-16`}
-              value={verseForm.benefits ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, benefits: e.target.value })}
-              placeholder="Optional benefits of chanting"
-            />
-          </Field>
-          <Field label="Image URL">
-            <input
-              className={inputCls}
-              value={verseForm.imageUrl ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, imageUrl: e.target.value })}
-              placeholder="Optional image URL representing this verse"
-            />
-          </Field>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Key Message">
+              <textarea
+                className={`${inputCls} min-h-16`}
+                value={verseForm.keyMessage ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, keyMessage: e.target.value })}
+                placeholder="Optional key message"
+              />
+            </Field>
+            <Field label="Benefits">
+              <textarea
+                className={`${inputCls} min-h-16`}
+                value={verseForm.benefits ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, benefits: e.target.value })}
+                placeholder="Optional benefits of chanting"
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#EFE6DD] mt-6">
             <GhostBtn onClick={() => setVerseModal(null)}>Cancel</GhostBtn>
             <PrimaryBtn onClick={saveVerse}>
               {verseModal === 'create' ? 'Add Verse' : 'Save Changes'}

@@ -193,6 +193,7 @@ export default function ContentLibraryPage() {
         title={creating ? 'New Collection' : 'Edit Collection'}
         open={creating || !!editing}
         onClose={closeForm}
+        disableOutsideClick={true}
       >
         <div className="space-y-4">
           <Field label="Collection title *">

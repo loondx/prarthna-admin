@@ -35,26 +35,49 @@ export function Modal({
   open,
   onClose,
   children,
+  disableOutsideClick = false,
+  disableEscape = false,
+  size = 'md',
 }: {
   title: string;
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  disableOutsideClick?: boolean;
+  disableEscape?: boolean;
+  size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 }) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || disableEscape) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, disableEscape]);
 
   if (!open) return null;
+
+  const sizeClass =
+    size === 'lg'
+      ? 'max-w-lg'
+      : size === 'xl'
+        ? 'max-w-xl'
+        : size === '2xl'
+          ? 'max-w-2xl'
+          : size === '3xl'
+            ? 'max-w-3xl'
+            : 'max-w-md';
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in"
+      onClick={() => {
+        if (!disableOutsideClick) {
+          onClose();
+        }
+      }}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white border border-[#EFE6DD] shadow-2xl animate-pop-in"
+        className={`w-full ${sizeClass} rounded-2xl bg-white border border-[#EFE6DD] shadow-2xl animate-pop-in`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#EFE6DD]">

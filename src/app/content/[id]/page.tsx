@@ -37,6 +37,7 @@ export default function ChapterManagerPage() {
 
   // Chapter modals
   const [chapterModal, setChapterModal] = useState<'create' | ChapterNode | null>(null);
+  const [activeTab, setActiveTab] = useState<'general' | 'teachings' | 'characters' | 'events'>('general');
   const [chapterForm, setChapterForm] = useState<{
     title: string;
     order: number;
@@ -123,6 +124,7 @@ export default function ChapterManagerPage() {
       characters: [],
       events: [],
     });
+    setActiveTab('general');
     setChapterModal('create');
   };
 
@@ -137,6 +139,7 @@ export default function ChapterManagerPage() {
       characters: Array.isArray(c.characters) ? c.characters : [],
       events: Array.isArray(c.events) ? c.events : [],
     });
+    setActiveTab('general');
     setChapterModal(c);
   };
 
@@ -390,190 +393,239 @@ export default function ChapterManagerPage() {
         title={chapterModal === 'create' ? 'Add Chapter' : 'Edit Chapter'}
         open={chapterModal !== null}
         onClose={() => setChapterModal(null)}
+        disableOutsideClick={true}
+        size="2xl"
       >
-        <div className="space-y-4 max-h-[80vh] overflow-y-auto px-1">
-          <Field label="Chapter title *">
-            <input
-              className={inputCls}
-              value={chapterForm.title}
-              onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
-              placeholder="e.g. Chapter 3 — Karma Yoga"
-            />
-          </Field>
-          <Field label="Order">
-            <input
-              type="number"
-              min={1}
-              className={inputCls}
-              value={chapterForm.order}
-              onChange={(e) =>
-                setChapterForm({ ...chapterForm, order: Math.max(1, Number(e.target.value) || 1) })
-              }
-            />
-          </Field>
-          <Field label="Overview">
-            <textarea
-              className={`${inputCls} min-h-20`}
-              value={chapterForm.overview}
-              onChange={(e) => setChapterForm({ ...chapterForm, overview: e.target.value })}
-              placeholder="A longer introductory paragraph about the chapter..."
-            />
-          </Field>
-          <Field label="Short Summary">
-            <textarea
-              className={`${inputCls} min-h-16`}
-              value={chapterForm.summary}
-              onChange={(e) => setChapterForm({ ...chapterForm, summary: e.target.value })}
-              placeholder="Brief high-level summary..."
-            />
-          </Field>
-          <Field label="Banner Image URL">
-            <input
-              className={inputCls}
-              value={chapterForm.bannerUrl}
-              onChange={(e) => setChapterForm({ ...chapterForm, bannerUrl: e.target.value })}
-              placeholder="https://example.com/banner.jpg"
-            />
-          </Field>
-          <Field label="Key Teachings (one per line)">
-            <textarea
-              className={`${inputCls} min-h-20`}
-              value={chapterForm.keyTeachings}
-              onChange={(e) => setChapterForm({ ...chapterForm, keyTeachings: e.target.value })}
-              placeholder="e.g. Selfless service is key to liberation.&#10;Control over desires yields peace."
-            />
-          </Field>
-          {/* Main Characters */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-[#8C7E77]">Main Characters</label>
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto px-1">
+          {/* Tab Navigation */}
+          <div className="flex border-b border-[#EFE6DD] mb-2 gap-1">
+            {[
+              { id: 'general', label: 'General Info' },
+              { id: 'teachings', label: 'Teachings' },
+              { id: 'characters', label: 'Characters' },
+              { id: 'events', label: 'Events' }
+            ].map(tab => (
               <button
+                key={tab.id}
                 type="button"
-                onClick={() => setChapterForm(prev => ({
-                  ...prev,
-                  characters: [...prev.characters, { name: '', role: '', description: '' }]
-                }))}
-                className="text-xs font-semibold text-[#8C5A3C] hover:underline"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`pb-2 px-4 text-xs font-semibold border-b-2 transition-all ${
+                  activeTab === tab.id
+                    ? 'border-[#8C5A3C] text-[#8C5A3C]'
+                    : 'border-transparent text-[#8C7E77] hover:text-[#2D1E17]'
+                }`}
               >
-                + Add Character
+                {tab.label}
               </button>
-            </div>
-            <div className="space-y-3 max-h-48 overflow-y-auto border border-[#EFE6DD] rounded-xl p-3 bg-[#FAF6F0]/30">
-              {chapterForm.characters.length === 0 ? (
-                <p className="text-[10px] text-[#8C7E77] text-center py-2">No characters added yet.</p>
-              ) : (
-                chapterForm.characters.map((char, index) => (
-                  <div key={index} className="space-y-2 pb-2 border-b border-[#EFE6DD] last:border-0 last:pb-0">
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        className={inputCls}
-                        value={char.name}
-                        onChange={(e) => {
-                          const updated = [...chapterForm.characters];
-                          updated[index] = { ...updated[index], name: e.target.value };
-                          setChapterForm({ ...chapterForm, characters: updated });
-                        }}
-                        placeholder="Character Name"
-                      />
-                      <input
-                        className={inputCls}
-                        value={char.role}
-                        onChange={(e) => {
-                          const updated = [...chapterForm.characters];
-                          updated[index] = { ...updated[index], role: e.target.value };
-                          setChapterForm({ ...chapterForm, characters: updated });
-                        }}
-                        placeholder="Role (e.g. Divine Teacher)"
-                      />
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <input
-                        className="flex-1 bg-white border border-[#EFE6DD] rounded-lg p-2 text-xs text-[#2D1E17]"
-                        value={char.description}
-                        onChange={(e) => {
-                          const updated = [...chapterForm.characters];
-                          updated[index] = { ...updated[index], description: e.target.value };
-                          setChapterForm({ ...chapterForm, characters: updated });
-                        }}
-                        placeholder="Brief description..."
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = chapterForm.characters.filter((_, i) => i !== index);
-                          setChapterForm({ ...chapterForm, characters: updated });
-                        }}
-                        className="text-red-500 hover:text-red-700 text-xs px-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            ))}
           </div>
 
-          {/* Chapter Events */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-[#8C7E77]">Chapter Events</label>
-              <button
-                type="button"
-                onClick={() => setChapterForm(prev => ({
-                  ...prev,
-                  events: [...prev.events, { title: '', description: '' }]
-                }))}
-                className="text-xs font-semibold text-[#8C5A3C] hover:underline"
-              >
-                + Add Event
-              </button>
-            </div>
-            <div className="space-y-3 max-h-48 overflow-y-auto border border-[#EFE6DD] rounded-xl p-3 bg-[#FAF6F0]/30">
-              {chapterForm.events.length === 0 ? (
-                <p className="text-[10px] text-[#8C7E77] text-center py-2">No events added yet.</p>
-              ) : (
-                chapterForm.events.map((evt, index) => (
-                  <div key={index} className="space-y-2 pb-2 border-b border-[#EFE6DD] last:border-0 last:pb-0">
+          {activeTab === 'general' && (
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <Field label="Chapter title *">
                     <input
                       className={inputCls}
-                      value={evt.title}
-                      onChange={(e) => {
-                        const updated = [...chapterForm.events];
-                        updated[index] = { ...updated[index], title: e.target.value };
-                        setChapterForm({ ...chapterForm, events: updated });
-                      }}
-                      placeholder="Event Title"
+                      value={chapterForm.title}
+                      onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
+                      placeholder="e.g. Chapter 3 — Karma Yoga"
                     />
-                    <div className="flex gap-2 items-center">
+                  </Field>
+                </div>
+                <div>
+                  <Field label="Order">
+                    <input
+                      type="number"
+                      min={1}
+                      className={inputCls}
+                      value={chapterForm.order}
+                      onChange={(e) =>
+                        setChapterForm({ ...chapterForm, order: Math.max(1, Number(e.target.value) || 1) })
+                      }
+                    />
+                  </Field>
+                </div>
+              </div>
+              <Field label="Overview (Introductory Paragraph)">
+                <textarea
+                  className={`${inputCls} min-h-24`}
+                  value={chapterForm.overview}
+                  onChange={(e) => setChapterForm({ ...chapterForm, overview: e.target.value })}
+                  placeholder="A longer introductory paragraph about the chapter's context..."
+                />
+              </Field>
+              <Field label="Short Summary">
+                <textarea
+                  className={`${inputCls} min-h-16`}
+                  value={chapterForm.summary}
+                  onChange={(e) => setChapterForm({ ...chapterForm, summary: e.target.value })}
+                  placeholder="Brief high-level summary..."
+                />
+              </Field>
+              <Field label="Banner Image URL">
+                <input
+                  className={inputCls}
+                  value={chapterForm.bannerUrl}
+                  onChange={(e) => setChapterForm({ ...chapterForm, bannerUrl: e.target.value })}
+                  placeholder="https://example.com/banner.jpg"
+                />
+              </Field>
+            </div>
+          )}
+
+          {activeTab === 'teachings' && (
+            <div className="space-y-3 pt-2">
+              <Field label="Key Teachings (one per line)">
+                <textarea
+                  className={`${inputCls} min-h-60`}
+                  value={chapterForm.keyTeachings}
+                  onChange={(e) => setChapterForm({ ...chapterForm, keyTeachings: e.target.value })}
+                  placeholder="e.g. Selfless service is key to liberation.&#10;Control over desires yields peace."
+                />
+              </Field>
+            </div>
+          )}
+
+          {activeTab === 'characters' && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-[#2D1E17]">Main Characters</h4>
+                  <p className="text-[10px] text-[#8C7E77]">List key figures appearing in this chapter.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChapterForm(prev => ({
+                    ...prev,
+                    characters: [...prev.characters, { name: '', role: '', description: '' }]
+                  }))}
+                  className="text-xs font-semibold text-[#8C5A3C] hover:underline"
+                >
+                  + Add Character
+                </button>
+              </div>
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto border border-[#EFE6DD] rounded-xl p-3 bg-[#FAF6F0]/30">
+                {chapterForm.characters.length === 0 ? (
+                  <p className="text-[10px] text-[#8C7E77] text-center py-6">No characters added yet. Click "+ Add Character" to insert one.</p>
+                ) : (
+                  chapterForm.characters.map((char, index) => (
+                    <div key={index} className="space-y-2 pb-3 border-b border-[#EFE6DD] last:border-0 last:pb-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          className={inputCls}
+                          value={char.name}
+                          onChange={(e) => {
+                            const updated = [...chapterForm.characters];
+                            updated[index] = { ...updated[index], name: e.target.value };
+                            setChapterForm({ ...chapterForm, characters: updated });
+                          }}
+                          placeholder="Character Name"
+                        />
+                        <input
+                          className={inputCls}
+                          value={char.role}
+                          onChange={(e) => {
+                            const updated = [...chapterForm.characters];
+                            updated[index] = { ...updated[index], role: e.target.value };
+                            setChapterForm({ ...chapterForm, characters: updated });
+                          }}
+                          placeholder="Role (e.g. Divine Teacher)"
+                        />
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          className="flex-1 bg-white border border-[#EFE6DD] rounded-lg p-2 text-xs text-[#2D1E17]"
+                          value={char.description}
+                          onChange={(e) => {
+                            const updated = [...chapterForm.characters];
+                            updated[index] = { ...updated[index], description: e.target.value };
+                            setChapterForm({ ...chapterForm, characters: updated });
+                          }}
+                          placeholder="Brief description..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = chapterForm.characters.filter((_, i) => i !== index);
+                            setChapterForm({ ...chapterForm, characters: updated });
+                          }}
+                          className="text-red-500 hover:text-red-700 text-xs px-2"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'events' && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-[#2D1E17]">Chapter Events</h4>
+                  <p className="text-[10px] text-[#8C7E77]">List chronological events occurring in this chapter.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChapterForm(prev => ({
+                    ...prev,
+                    events: [...prev.events, { title: '', description: '' }]
+                  }))}
+                  className="text-xs font-semibold text-[#8C5A3C] hover:underline"
+                >
+                  + Add Event
+                </button>
+              </div>
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto border border-[#EFE6DD] rounded-xl p-3 bg-[#FAF6F0]/30">
+                {chapterForm.events.length === 0 ? (
+                  <p className="text-[10px] text-[#8C7E77] text-center py-6">No events added yet. Click "+ Add Event" to insert one.</p>
+                ) : (
+                  chapterForm.events.map((evt, index) => (
+                    <div key={index} className="space-y-2 pb-3 border-b border-[#EFE6DD] last:border-0 last:pb-0">
                       <input
-                        className="flex-1 bg-white border border-[#EFE6DD] rounded-lg p-2 text-xs text-[#2D1E17]"
-                        value={evt.description}
+                        className={inputCls}
+                        value={evt.title}
                         onChange={(e) => {
                           const updated = [...chapterForm.events];
-                          updated[index] = { ...updated[index], description: e.target.value };
+                          updated[index] = { ...updated[index], title: e.target.value };
                           setChapterForm({ ...chapterForm, events: updated });
                         }}
-                        placeholder="Event Description..."
+                        placeholder="Event Title"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = chapterForm.events.filter((_, i) => i !== index);
-                          setChapterForm({ ...chapterForm, events: updated });
-                        }}
-                        className="text-red-500 hover:text-red-700 text-xs px-2"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          className="flex-1 bg-white border border-[#EFE6DD] rounded-lg p-2 text-xs text-[#2D1E17]"
+                          value={evt.description}
+                          onChange={(e) => {
+                            const updated = [...chapterForm.events];
+                            updated[index] = { ...updated[index], description: e.target.value };
+                            setChapterForm({ ...chapterForm, events: updated });
+                          }}
+                          placeholder="Event Description..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = chapterForm.events.filter((_, i) => i !== index);
+                            setChapterForm({ ...chapterForm, events: updated });
+                          }}
+                          className="text-red-500 hover:text-red-700 text-xs px-2"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#EFE6DD] mt-6">
             <GhostBtn onClick={() => setChapterModal(null)}>Cancel</GhostBtn>
             <PrimaryBtn onClick={saveChapter}>
               {chapterModal === 'create' ? 'Add Chapter' : 'Save Changes'}
@@ -587,16 +639,28 @@ export default function ChapterManagerPage() {
         title={verseModal === 'create' ? 'Add Verse' : 'Edit Verse'}
         open={verseModal !== null}
         onClose={() => setVerseModal(null)}
+        disableOutsideClick={true}
+        size="xl"
       >
-        <div className="space-y-4">
-          <Field label="Verse reference *">
-            <input
-              className={inputCls}
-              value={verseForm.verseNumber}
-              onChange={(e) => setVerseForm({ ...verseForm, verseNumber: e.target.value })}
-              placeholder="e.g. Verse 12"
-            />
-          </Field>
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto px-1 pt-2">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Verse reference *">
+              <input
+                className={inputCls}
+                value={verseForm.verseNumber}
+                onChange={(e) => setVerseForm({ ...verseForm, verseNumber: e.target.value })}
+                placeholder="e.g. Verse 12"
+              />
+            </Field>
+            <Field label="Image URL">
+              <input
+                className={inputCls}
+                value={verseForm.imageUrl ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, imageUrl: e.target.value })}
+                placeholder="Optional image URL"
+              />
+            </Field>
+          </div>
           <Field label="Sanskrit text *">
             <textarea
               className={`${inputCls} min-h-20 font-serif`}
@@ -613,21 +677,24 @@ export default function ChapterManagerPage() {
               placeholder="Optional roman transliteration"
             />
           </Field>
-          <Field label="English translation *">
-            <textarea
-              className={`${inputCls} min-h-20`}
-              value={verseForm.contentEnglish}
-              onChange={(e) => setVerseForm({ ...verseForm, contentEnglish: e.target.value })}
-            />
-          </Field>
-          <Field label="Hindi translation">
-            <textarea
-              className={`${inputCls} min-h-20`}
-              value={verseForm.translationHindi ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, translationHindi: e.target.value })}
-              placeholder="Optional Hindi translation"
-            />
-          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="English translation *">
+              <textarea
+                className={`${inputCls} min-h-20`}
+                value={verseForm.contentEnglish}
+                onChange={(e) => setVerseForm({ ...verseForm, contentEnglish: e.target.value })}
+                placeholder="English translation..."
+              />
+            </Field>
+            <Field label="Hindi translation">
+              <textarea
+                className={`${inputCls} min-h-20`}
+                value={verseForm.translationHindi ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, translationHindi: e.target.value })}
+                placeholder="Hindi translation..."
+              />
+            </Field>
+          </div>
           <Field label="Simple Explanation">
             <textarea
               className={`${inputCls} min-h-20`}
@@ -644,31 +711,25 @@ export default function ChapterManagerPage() {
               placeholder="Optional life lesson"
             />
           </Field>
-          <Field label="Key Message">
-            <textarea
-              className={`${inputCls} min-h-16`}
-              value={verseForm.keyMessage ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, keyMessage: e.target.value })}
-              placeholder="Optional key message"
-            />
-          </Field>
-          <Field label="Benefits">
-            <textarea
-              className={`${inputCls} min-h-16`}
-              value={verseForm.benefits ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, benefits: e.target.value })}
-              placeholder="Optional benefits of chanting"
-            />
-          </Field>
-          <Field label="Image URL">
-            <input
-              className={inputCls}
-              value={verseForm.imageUrl ?? ''}
-              onChange={(e) => setVerseForm({ ...verseForm, imageUrl: e.target.value })}
-              placeholder="Optional image URL representing this verse"
-            />
-          </Field>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Key Message">
+              <textarea
+                className={`${inputCls} min-h-16`}
+                value={verseForm.keyMessage ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, keyMessage: e.target.value })}
+                placeholder="Optional key message"
+              />
+            </Field>
+            <Field label="Benefits">
+              <textarea
+                className={`${inputCls} min-h-16`}
+                value={verseForm.benefits ?? ''}
+                onChange={(e) => setVerseForm({ ...verseForm, benefits: e.target.value })}
+                placeholder="Optional benefits of chanting"
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#EFE6DD] mt-6">
             <GhostBtn onClick={() => setVerseModal(null)}>Cancel</GhostBtn>
             <PrimaryBtn onClick={saveVerse}>
               {verseModal === 'create' ? 'Add Verse' : 'Save Changes'}

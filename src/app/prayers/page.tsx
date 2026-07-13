@@ -197,6 +197,7 @@ export default function PrayersPage() {
         title={creating ? 'New Prayer' : 'Edit Prayer'}
         open={creating || !!editing}
         onClose={closeForm}
+        disableOutsideClick={true}
       >
         <div className="space-y-4">
           <Field label="Prayer title *">
