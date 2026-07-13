@@ -31,7 +31,16 @@ export default function ChapterManagerPage() {
 
   // Chapter modals
   const [chapterModal, setChapterModal] = useState<'create' | ChapterNode | null>(null);
-  const [chapterForm, setChapterForm] = useState({ title: '', order: 1 });
+  const [chapterForm, setChapterForm] = useState({
+    title: '',
+    order: 1,
+    overview: '',
+    summary: '',
+    bannerUrl: '',
+    keyTeachings: '',
+    characters: '[]',
+    events: '[]',
+  });
   const [deletingChapter, setDeletingChapter] = useState<ChapterNode | null>(null);
 
   // Expanded chapter + its verses
@@ -89,12 +98,30 @@ export default function ChapterManagerPage() {
   // ── Chapter handlers ────────────────────────────────────────────
   const openCreateChapter = () => {
     const nextOrder = chapters.reduce((m, c) => Math.max(m, c.order), 0) + 1;
-    setChapterForm({ title: '', order: nextOrder });
+    setChapterForm({
+      title: '',
+      order: nextOrder,
+      overview: '',
+      summary: '',
+      bannerUrl: '',
+      keyTeachings: '',
+      characters: '[]',
+      events: '[]',
+    });
     setChapterModal('create');
   };
 
   const openEditChapter = (c: ChapterNode) => {
-    setChapterForm({ title: c.title, order: c.order });
+    setChapterForm({
+      title: c.title,
+      order: c.order,
+      overview: c.overview ?? '',
+      summary: c.summary ?? '',
+      bannerUrl: c.bannerUrl ?? '',
+      keyTeachings: (c.keyTeachings ?? []).join('\n'),
+      characters: JSON.stringify(c.characters ?? [], null, 2),
+      events: JSON.stringify(c.events ?? [], null, 2),
+    });
     setChapterModal(c);
   };
 
@@ -103,14 +130,39 @@ export default function ChapterManagerPage() {
       toast('Chapter title is required', 'error');
       return;
     }
+    let parsedCharacters = [];
+    let parsedEvents = [];
+    try {
+      parsedCharacters = JSON.parse(chapterForm.characters || '[]');
+      if (!Array.isArray(parsedCharacters)) throw new Error();
+    } catch {
+      toast('Characters must be a valid JSON array of objects', 'error');
+      return;
+    }
+    try {
+      parsedEvents = JSON.parse(chapterForm.events || '[]');
+      if (!Array.isArray(parsedEvents)) throw new Error();
+    } catch {
+      toast('Events must be a valid JSON array of objects', 'error');
+      return;
+    }
+
+    const payload = {
+      title: chapterForm.title.trim(),
+      order: chapterForm.order,
+      overview: chapterForm.overview.trim() || undefined,
+      summary: chapterForm.summary.trim() || undefined,
+      bannerUrl: chapterForm.bannerUrl.trim() || undefined,
+      keyTeachings: chapterForm.keyTeachings.split('\n').map(t => t.trim()).filter(Boolean),
+      characters: parsedCharacters,
+      events: parsedEvents,
+    };
+
     const ok =
       chapterModal === 'create'
-        ? await actions.createChapter(collectionId, chapterForm.title.trim(), chapterForm.order)
+        ? await actions.createChapter(collectionId, payload.title, payload.order, payload)
         : chapterModal
-          ? await actions.updateChapter(chapterModal.id, {
-              title: chapterForm.title.trim(),
-              order: chapterForm.order,
-            })
+          ? await actions.updateChapter(chapterModal.id, payload)
           : false;
     if (ok) {
       setChapterModal(null);
@@ -323,7 +375,7 @@ export default function ChapterManagerPage() {
         open={chapterModal !== null}
         onClose={() => setChapterModal(null)}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[80vh] overflow-y-auto px-1">
           <Field label="Chapter title *">
             <input
               className={inputCls}
@@ -341,6 +393,54 @@ export default function ChapterManagerPage() {
               onChange={(e) =>
                 setChapterForm({ ...chapterForm, order: Math.max(1, Number(e.target.value) || 1) })
               }
+            />
+          </Field>
+          <Field label="Overview">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={chapterForm.overview}
+              onChange={(e) => setChapterForm({ ...chapterForm, overview: e.target.value })}
+              placeholder="A longer introductory paragraph about the chapter..."
+            />
+          </Field>
+          <Field label="Short Summary">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={chapterForm.summary}
+              onChange={(e) => setChapterForm({ ...chapterForm, summary: e.target.value })}
+              placeholder="Brief high-level summary..."
+            />
+          </Field>
+          <Field label="Banner Image URL">
+            <input
+              className={inputCls}
+              value={chapterForm.bannerUrl}
+              onChange={(e) => setChapterForm({ ...chapterForm, bannerUrl: e.target.value })}
+              placeholder="https://example.com/banner.jpg"
+            />
+          </Field>
+          <Field label="Key Teachings (one per line)">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={chapterForm.keyTeachings}
+              onChange={(e) => setChapterForm({ ...chapterForm, keyTeachings: e.target.value })}
+              placeholder="e.g. Selfless service is key to liberation.&#10;Control over desires yields peace."
+            />
+          </Field>
+          <Field label="Main Characters (JSON Array)">
+            <textarea
+              className={`${inputCls} min-h-24 font-mono text-[10px]`}
+              value={chapterForm.characters}
+              onChange={(e) => setChapterForm({ ...chapterForm, characters: e.target.value })}
+              placeholder='[{"name": "Krishna", "role": "Divine Teacher", "description": "Avatar of Vishnu guiding Arjuna."}]'
+            />
+          </Field>
+          <Field label="Chapter Events (JSON Array)">
+            <textarea
+              className={`${inputCls} min-h-24 font-mono text-[10px]`}
+              value={chapterForm.events}
+              onChange={(e) => setChapterForm({ ...chapterForm, events: e.target.value })}
+              placeholder='[{"title": "Arjuna Arjuna&apos;s Despondency", "description": "Arjuna drops his bow and refuses to fight."}]'
             />
           </Field>
           <div className="flex justify-end gap-3 pt-2">

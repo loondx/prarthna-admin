@@ -101,6 +101,12 @@ export interface ChapterNode {
   id: string;
   title: string;
   order: number;
+  overview?: string;
+  summary?: string;
+  bannerUrl?: string;
+  keyTeachings?: string[];
+  characters?: any;
+  events?: any;
 }
 
 export interface VerseUnit {
@@ -234,8 +240,8 @@ interface StoreValue {
     listUnits: (nodeId: string) => Promise<ContentUnitOption[]>;
     getChapters: (collectionId: string) => Promise<ChapterNode[]>;
     getVerses: (nodeId: string) => Promise<VerseUnit[]>;
-    createChapter: (collectionId: string, title: string, order: number) => Promise<boolean>;
-    updateChapter: (id: string, input: { title?: string; order?: number }) => Promise<boolean>;
+    createChapter: (collectionId: string, title: string, order: number, extra?: Partial<ChapterNode>) => Promise<boolean>;
+    updateChapter: (id: string, input: Partial<ChapterNode>) => Promise<boolean>;
     deleteChapter: (id: string) => Promise<boolean>;
     createVerse: (nodeId: string, input: VerseInput) => Promise<boolean>;
     updateVerse: (id: string, input: VerseInput) => Promise<boolean>;
@@ -412,6 +418,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         id: n.id,
         title: n.title,
         order: n.order,
+        overview: n.overview ?? '',
+        summary: n.summary ?? '',
+        bannerUrl: n.bannerUrl ?? '',
+        keyTeachings: n.keyTeachings ?? [],
+        characters: n.characters ?? [],
+        events: n.events ?? [],
       }));
     },
     getVerses: async (nodeId) => {
@@ -424,9 +436,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         contentEnglish: u.contentEnglish ?? '',
       }));
     },
-    createChapter: (collectionId, title, order) =>
+    createChapter: (collectionId, title, order, extra) =>
       run(
-        () => apiPost('/content/nodes', { collectionId, title, order }),
+        () => apiPost('/content/nodes', { collectionId, title, order, ...extra }),
         `Chapter "${title}" added`,
       ),
     updateChapter: (id, input) =>
