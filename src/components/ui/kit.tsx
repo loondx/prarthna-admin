@@ -52,7 +52,6 @@ export function Modal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in"
-      onClick={onClose}
     >
       <div
         className="w-full max-w-md rounded-2xl bg-white border border-[#EFE6DD] shadow-2xl animate-pop-in"

@@ -36,6 +36,9 @@ export interface Collection {
   nodes: string;
   units: string;
   lang: string;
+  description?: string;
+  category?: string;
+  type: string;
 }
 
 export interface AudioTrack {
@@ -119,6 +122,12 @@ export interface VerseUnit {
   contentSanskrit: string;
   transliteration: string;
   contentEnglish: string;
+  translationHindi?: string;
+  explanation?: string;
+  lifeLesson?: string;
+  keyMessage?: string;
+  benefits?: string;
+  imageUrl?: string;
   audioUrl?: string;
 }
 
@@ -127,6 +136,12 @@ export interface VerseInput {
   contentSanskrit: string;
   transliteration?: string;
   contentEnglish: string;
+  translationHindi?: string;
+  explanation?: string;
+  lifeLesson?: string;
+  keyMessage?: string;
+  benefits?: string;
+  imageUrl?: string;
 }
 
 export interface ContentNodeOption {
@@ -172,6 +187,9 @@ function mapCollection(c: any): Collection {
     nodes: `${c._count?.nodes ?? 0} Chapters`,
     units: c.type ?? 'SCRIPTURE',
     lang: c.description ?? '',
+    description: c.description ?? '',
+    category: c.category ?? '',
+    type: c.type ?? 'SCRIPTURE',
   };
 }
 
@@ -223,8 +241,8 @@ interface StoreValue {
   toast: (message: string, kind?: Toast['kind']) => void;
   refresh: () => Promise<void>;
   actions: {
-    createCollection: (input: { title: string; type: string; description?: string }) => Promise<boolean>;
-    updateCollection: (id: string, input: { title?: string; type?: string; description?: string }) => Promise<boolean>;
+    createCollection: (input: { title: string; type: string; description?: string; category?: string }) => Promise<boolean>;
+    updateCollection: (id: string, input: { title?: string; type?: string; description?: string; category?: string }) => Promise<boolean>;
     deleteCollection: (id: string) => Promise<boolean>;
     setCollectionStatus: (id: string, status: 'Published' | 'Draft') => Promise<boolean>;
     createFestival: (input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
@@ -444,6 +462,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         contentSanskrit: u.contentSanskrit ?? '',
         transliteration: u.transliteration ?? '',
         contentEnglish: u.contentEnglish ?? '',
+        translationHindi: u.translationHindi ?? '',
+        explanation: u.explanation ?? '',
+        lifeLesson: u.lifeLesson ?? '',
+        keyMessage: u.keyMessage ?? '',
+        benefits: u.benefits ?? '',
+        imageUrl: u.imageUrl ?? '',
         audioUrl: u.mediaAssets?.[0]?.audioUrl ?? undefined,
       }));
     },

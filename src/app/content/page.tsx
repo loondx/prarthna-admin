@@ -5,8 +5,23 @@ import Link from 'next/link';
 import { useStore, Collection } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, inputCls } from '@/components/ui/kit';
 
-const EMPTY = { title: '', type: 'SCRIPTURE', description: '' };
+const EMPTY = { title: '', type: 'SCRIPTURE', description: '', category: '' };
 const TYPES = ['SCRIPTURE', 'PRAYER'];
+const PRAYER_CATEGORIES = [
+  'Morning Prayer',
+  'Evening Prayer',
+  'Before Food',
+  'Before Study',
+  'Before Sleep',
+  'Daily Prayer',
+  'Festival Prayer',
+  'Health',
+  'Wealth',
+  'Success',
+  'Peace',
+  'Meditation',
+  'Others'
+];
 
 export default function ContentLibraryPage() {
   const { data, actions, toast, apiLoading } = useStore();
@@ -34,7 +49,7 @@ export default function ContentLibraryPage() {
   };
 
   const openEdit = (c: Collection) => {
-    setForm({ title: c.title, type: c.units, description: c.lang });
+    setForm({ title: c.title, type: c.type, description: c.description || '', category: c.category || '' });
     setEditing(c);
   };
 
@@ -54,12 +69,14 @@ export default function ContentLibraryPage() {
           title: form.title.trim(),
           type: form.type,
           description: form.description || undefined,
+          category: form.type === 'PRAYER' ? form.category || undefined : undefined,
         })
       : editing
         ? await actions.updateCollection(editing.id, {
             title: form.title.trim(),
             type: form.type,
             description: form.description,
+            category: form.type === 'PRAYER' ? form.category || undefined : undefined,
           })
         : false;
     setSaving(false);
@@ -197,6 +214,20 @@ export default function ContentLibraryPage() {
               ))}
             </select>
           </Field>
+          {form.type === 'PRAYER' && (
+            <Field label="Category">
+              <select
+                className={inputCls}
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              >
+                <option value="">Select Category</option>
+                {PRAYER_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Description">
             <input
               className={inputCls}

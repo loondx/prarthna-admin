@@ -12,6 +12,12 @@ const EMPTY_VERSE: VerseInput = {
   contentSanskrit: '',
   transliteration: '',
   contentEnglish: '',
+  translationHindi: '',
+  explanation: '',
+  lifeLesson: '',
+  keyMessage: '',
+  benefits: '',
+  imageUrl: '',
 };
 
 export default function PrayerDetailsPage() {
@@ -188,8 +194,14 @@ export default function PrayerDetailsPage() {
     setVerseForm({
       verseNumber: v.verseNumber,
       contentSanskrit: v.contentSanskrit,
-      transliteration: v.transliteration,
+      transliteration: v.transliteration || '',
       contentEnglish: v.contentEnglish,
+      translationHindi: v.translationHindi || '',
+      explanation: v.explanation || '',
+      lifeLesson: v.lifeLesson || '',
+      keyMessage: v.keyMessage || '',
+      benefits: v.benefits || '',
+      imageUrl: v.imageUrl || '',
     });
     setVerseModal(v);
   };
@@ -205,6 +217,12 @@ export default function PrayerDetailsPage() {
       contentSanskrit: verseForm.contentSanskrit,
       transliteration: verseForm.transliteration || undefined,
       contentEnglish: verseForm.contentEnglish,
+      translationHindi: verseForm.translationHindi || undefined,
+      explanation: verseForm.explanation || undefined,
+      lifeLesson: verseForm.lifeLesson || undefined,
+      keyMessage: verseForm.keyMessage || undefined,
+      benefits: verseForm.benefits || undefined,
+      imageUrl: verseForm.imageUrl || undefined,
     };
     const ok =
       verseModal === 'create'
@@ -249,9 +267,14 @@ export default function PrayerDetailsPage() {
       </div>
 
       {loading && (
-        <div className="space-y-3">
+        <div className="space-y-4 animate-pulse">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-white border border-[#EFE6DD] animate-pulse" />
+            <div key={i} className="bg-white border border-[#EFE6DD] rounded-2xl p-6 flex items-center gap-4 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-[#EFE6DD]/60" />
+              <div className="h-4 bg-[#EFE6DD]/60 rounded-md w-1/3" />
+              <div className="ml-auto w-16 h-8 rounded-lg bg-[#EFE6DD]/40" />
+              <div className="w-16 h-8 rounded-lg bg-[#EFE6DD]/40" />
+            </div>
           ))}
         </div>
       )}
@@ -480,6 +503,54 @@ export default function PrayerDetailsPage() {
               className={`${inputCls} min-h-20`}
               value={verseForm.contentEnglish}
               onChange={(e) => setVerseForm({ ...verseForm, contentEnglish: e.target.value })}
+            />
+          </Field>
+          <Field label="Hindi translation">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={verseForm.translationHindi ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, translationHindi: e.target.value })}
+              placeholder="Optional Hindi translation"
+            />
+          </Field>
+          <Field label="Simple Explanation">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={verseForm.explanation ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, explanation: e.target.value })}
+              placeholder="Optional simple explanation"
+            />
+          </Field>
+          <Field label="Life Lesson">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={verseForm.lifeLesson ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, lifeLesson: e.target.value })}
+              placeholder="Optional life lesson"
+            />
+          </Field>
+          <Field label="Key Message">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={verseForm.keyMessage ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, keyMessage: e.target.value })}
+              placeholder="Optional key message"
+            />
+          </Field>
+          <Field label="Benefits">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={verseForm.benefits ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, benefits: e.target.value })}
+              placeholder="Optional benefits of chanting"
+            />
+          </Field>
+          <Field label="Image URL">
+            <input
+              className={inputCls}
+              value={verseForm.imageUrl ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, imageUrl: e.target.value })}
+              placeholder="Optional image URL representing this verse"
             />
           </Field>
           <div className="flex justify-end gap-3 pt-2">

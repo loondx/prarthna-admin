@@ -5,7 +5,23 @@ import Link from 'next/link';
 import { useStore, Collection } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, inputCls } from '@/components/ui/kit';
 
-const EMPTY = { title: '', type: 'PRAYER', description: '' };
+const EMPTY = { title: '', type: 'PRAYER', description: '', category: '' };
+
+const PRAYER_CATEGORIES = [
+  'Morning Prayer',
+  'Evening Prayer',
+  'Before Food',
+  'Before Study',
+  'Before Sleep',
+  'Daily Prayer',
+  'Festival Prayer',
+  'Health',
+  'Wealth',
+  'Success',
+  'Peace',
+  'Meditation',
+  'Others'
+];
 
 export default function PrayersPage() {
   const { data, actions, toast, apiLoading } = useStore();
@@ -37,7 +53,7 @@ export default function PrayersPage() {
   };
 
   const openEdit = (c: Collection) => {
-    setForm({ title: c.title, type: 'PRAYER', description: c.lang });
+    setForm({ title: c.title, type: 'PRAYER', description: c.lang, category: c.category || '' });
     setEditing(c);
   };
 
@@ -57,12 +73,14 @@ export default function PrayersPage() {
           title: form.title.trim(),
           type: 'PRAYER',
           description: form.description || undefined,
+          category: form.category || undefined,
         })
       : editing
         ? await actions.updateCollection(editing.id, {
             title: form.title.trim(),
             type: 'PRAYER',
             description: form.description,
+            category: form.category || undefined,
           })
         : false;
     setSaving(false);
@@ -196,6 +214,18 @@ export default function PrayersPage() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="e.g. A devotional hymn dedicated to Lord Hanuman."
             />
+          </Field>
+          <Field label="Category">
+            <select
+              className={inputCls}
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              <option value="">Select Category</option>
+              {PRAYER_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </Field>
           <div className="flex justify-end gap-3 pt-2">
             <GhostBtn onClick={closeForm}>Cancel</GhostBtn>

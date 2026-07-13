@@ -16,6 +16,12 @@ const EMPTY_VERSE: VerseInput = {
   contentSanskrit: '',
   transliteration: '',
   contentEnglish: '',
+  translationHindi: '',
+  explanation: '',
+  lifeLesson: '',
+  keyMessage: '',
+  benefits: '',
+  imageUrl: '',
 };
 
 export default function ChapterManagerPage() {
@@ -31,15 +37,24 @@ export default function ChapterManagerPage() {
 
   // Chapter modals
   const [chapterModal, setChapterModal] = useState<'create' | ChapterNode | null>(null);
-  const [chapterForm, setChapterForm] = useState({
+  const [chapterForm, setChapterForm] = useState<{
+    title: string;
+    order: number;
+    overview: string;
+    summary: string;
+    bannerUrl: string;
+    keyTeachings: string;
+    characters: { name: string; role: string; description: string }[];
+    events: { title: string; description: string }[];
+  }>({
     title: '',
     order: 1,
     overview: '',
     summary: '',
     bannerUrl: '',
     keyTeachings: '',
-    characters: '[]',
-    events: '[]',
+    characters: [],
+    events: [],
   });
   const [deletingChapter, setDeletingChapter] = useState<ChapterNode | null>(null);
 
@@ -105,8 +120,8 @@ export default function ChapterManagerPage() {
       summary: '',
       bannerUrl: '',
       keyTeachings: '',
-      characters: '[]',
-      events: '[]',
+      characters: [],
+      events: [],
     });
     setChapterModal('create');
   };
@@ -119,8 +134,8 @@ export default function ChapterManagerPage() {
       summary: c.summary ?? '',
       bannerUrl: c.bannerUrl ?? '',
       keyTeachings: (c.keyTeachings ?? []).join('\n'),
-      characters: JSON.stringify(c.characters ?? [], null, 2),
-      events: JSON.stringify(c.events ?? [], null, 2),
+      characters: Array.isArray(c.characters) ? c.characters : [],
+      events: Array.isArray(c.events) ? c.events : [],
     });
     setChapterModal(c);
   };
@@ -128,22 +143,6 @@ export default function ChapterManagerPage() {
   const saveChapter = async () => {
     if (!chapterForm.title.trim()) {
       toast('Chapter title is required', 'error');
-      return;
-    }
-    let parsedCharacters = [];
-    let parsedEvents = [];
-    try {
-      parsedCharacters = JSON.parse(chapterForm.characters || '[]');
-      if (!Array.isArray(parsedCharacters)) throw new Error();
-    } catch {
-      toast('Characters must be a valid JSON array of objects', 'error');
-      return;
-    }
-    try {
-      parsedEvents = JSON.parse(chapterForm.events || '[]');
-      if (!Array.isArray(parsedEvents)) throw new Error();
-    } catch {
-      toast('Events must be a valid JSON array of objects', 'error');
       return;
     }
 
@@ -154,8 +153,8 @@ export default function ChapterManagerPage() {
       summary: chapterForm.summary.trim() || undefined,
       bannerUrl: chapterForm.bannerUrl.trim() || undefined,
       keyTeachings: chapterForm.keyTeachings.split('\n').map(t => t.trim()).filter(Boolean),
-      characters: parsedCharacters,
-      events: parsedEvents,
+      characters: chapterForm.characters,
+      events: chapterForm.events,
     };
 
     const ok =
@@ -190,8 +189,14 @@ export default function ChapterManagerPage() {
     setVerseForm({
       verseNumber: v.verseNumber,
       contentSanskrit: v.contentSanskrit,
-      transliteration: v.transliteration,
+      transliteration: v.transliteration || '',
       contentEnglish: v.contentEnglish,
+      translationHindi: v.translationHindi || '',
+      explanation: v.explanation || '',
+      lifeLesson: v.lifeLesson || '',
+      keyMessage: v.keyMessage || '',
+      benefits: v.benefits || '',
+      imageUrl: v.imageUrl || '',
     });
     setVerseModal(v);
   };
@@ -207,6 +212,12 @@ export default function ChapterManagerPage() {
       contentSanskrit: verseForm.contentSanskrit,
       transliteration: verseForm.transliteration || undefined,
       contentEnglish: verseForm.contentEnglish,
+      translationHindi: verseForm.translationHindi || undefined,
+      explanation: verseForm.explanation || undefined,
+      lifeLesson: verseForm.lifeLesson || undefined,
+      keyMessage: verseForm.keyMessage || undefined,
+      benefits: verseForm.benefits || undefined,
+      imageUrl: verseForm.imageUrl || undefined,
     };
     const ok =
       verseModal === 'create'
@@ -252,9 +263,14 @@ export default function ChapterManagerPage() {
       </div>
 
       {loading && (
-        <div className="space-y-3">
+        <div className="space-y-4 animate-pulse">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-white border border-[#EFE6DD] animate-pulse" />
+            <div key={i} className="bg-white border border-[#EFE6DD] rounded-2xl p-6 flex items-center gap-4 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-[#EFE6DD]/60" />
+              <div className="h-4 bg-[#EFE6DD]/60 rounded-md w-1/3" />
+              <div className="ml-auto w-16 h-8 rounded-lg bg-[#EFE6DD]/40" />
+              <div className="w-16 h-8 rounded-lg bg-[#EFE6DD]/40" />
+            </div>
           ))}
         </div>
       )}
@@ -427,22 +443,136 @@ export default function ChapterManagerPage() {
               placeholder="e.g. Selfless service is key to liberation.&#10;Control over desires yields peace."
             />
           </Field>
-          <Field label="Main Characters (JSON Array)">
-            <textarea
-              className={`${inputCls} min-h-24 font-mono text-[10px]`}
-              value={chapterForm.characters}
-              onChange={(e) => setChapterForm({ ...chapterForm, characters: e.target.value })}
-              placeholder='[{"name": "Krishna", "role": "Divine Teacher", "description": "Avatar of Vishnu guiding Arjuna."}]'
-            />
-          </Field>
-          <Field label="Chapter Events (JSON Array)">
-            <textarea
-              className={`${inputCls} min-h-24 font-mono text-[10px]`}
-              value={chapterForm.events}
-              onChange={(e) => setChapterForm({ ...chapterForm, events: e.target.value })}
-              placeholder='[{"title": "Arjuna Arjuna&apos;s Despondency", "description": "Arjuna drops his bow and refuses to fight."}]'
-            />
-          </Field>
+          {/* Main Characters */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-[#8C7E77]">Main Characters</label>
+              <button
+                type="button"
+                onClick={() => setChapterForm(prev => ({
+                  ...prev,
+                  characters: [...prev.characters, { name: '', role: '', description: '' }]
+                }))}
+                className="text-xs font-semibold text-[#8C5A3C] hover:underline"
+              >
+                + Add Character
+              </button>
+            </div>
+            <div className="space-y-3 max-h-48 overflow-y-auto border border-[#EFE6DD] rounded-xl p-3 bg-[#FAF6F0]/30">
+              {chapterForm.characters.length === 0 ? (
+                <p className="text-[10px] text-[#8C7E77] text-center py-2">No characters added yet.</p>
+              ) : (
+                chapterForm.characters.map((char, index) => (
+                  <div key={index} className="space-y-2 pb-2 border-b border-[#EFE6DD] last:border-0 last:pb-0">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        className={inputCls}
+                        value={char.name}
+                        onChange={(e) => {
+                          const updated = [...chapterForm.characters];
+                          updated[index] = { ...updated[index], name: e.target.value };
+                          setChapterForm({ ...chapterForm, characters: updated });
+                        }}
+                        placeholder="Character Name"
+                      />
+                      <input
+                        className={inputCls}
+                        value={char.role}
+                        onChange={(e) => {
+                          const updated = [...chapterForm.characters];
+                          updated[index] = { ...updated[index], role: e.target.value };
+                          setChapterForm({ ...chapterForm, characters: updated });
+                        }}
+                        placeholder="Role (e.g. Divine Teacher)"
+                      />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        className="flex-1 bg-white border border-[#EFE6DD] rounded-lg p-2 text-xs text-[#2D1E17]"
+                        value={char.description}
+                        onChange={(e) => {
+                          const updated = [...chapterForm.characters];
+                          updated[index] = { ...updated[index], description: e.target.value };
+                          setChapterForm({ ...chapterForm, characters: updated });
+                        }}
+                        placeholder="Brief description..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = chapterForm.characters.filter((_, i) => i !== index);
+                          setChapterForm({ ...chapterForm, characters: updated });
+                        }}
+                        className="text-red-500 hover:text-red-700 text-xs px-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Chapter Events */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-[#8C7E77]">Chapter Events</label>
+              <button
+                type="button"
+                onClick={() => setChapterForm(prev => ({
+                  ...prev,
+                  events: [...prev.events, { title: '', description: '' }]
+                }))}
+                className="text-xs font-semibold text-[#8C5A3C] hover:underline"
+              >
+                + Add Event
+              </button>
+            </div>
+            <div className="space-y-3 max-h-48 overflow-y-auto border border-[#EFE6DD] rounded-xl p-3 bg-[#FAF6F0]/30">
+              {chapterForm.events.length === 0 ? (
+                <p className="text-[10px] text-[#8C7E77] text-center py-2">No events added yet.</p>
+              ) : (
+                chapterForm.events.map((evt, index) => (
+                  <div key={index} className="space-y-2 pb-2 border-b border-[#EFE6DD] last:border-0 last:pb-0">
+                    <input
+                      className={inputCls}
+                      value={evt.title}
+                      onChange={(e) => {
+                        const updated = [...chapterForm.events];
+                        updated[index] = { ...updated[index], title: e.target.value };
+                        setChapterForm({ ...chapterForm, events: updated });
+                      }}
+                      placeholder="Event Title"
+                    />
+                    <div className="flex gap-2 items-center">
+                      <input
+                        className="flex-1 bg-white border border-[#EFE6DD] rounded-lg p-2 text-xs text-[#2D1E17]"
+                        value={evt.description}
+                        onChange={(e) => {
+                          const updated = [...chapterForm.events];
+                          updated[index] = { ...updated[index], description: e.target.value };
+                          setChapterForm({ ...chapterForm, events: updated });
+                        }}
+                        placeholder="Event Description..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = chapterForm.events.filter((_, i) => i !== index);
+                          setChapterForm({ ...chapterForm, events: updated });
+                        }}
+                        className="text-red-500 hover:text-red-700 text-xs px-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <GhostBtn onClick={() => setChapterModal(null)}>Cancel</GhostBtn>
             <PrimaryBtn onClick={saveChapter}>
@@ -488,6 +618,54 @@ export default function ChapterManagerPage() {
               className={`${inputCls} min-h-20`}
               value={verseForm.contentEnglish}
               onChange={(e) => setVerseForm({ ...verseForm, contentEnglish: e.target.value })}
+            />
+          </Field>
+          <Field label="Hindi translation">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={verseForm.translationHindi ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, translationHindi: e.target.value })}
+              placeholder="Optional Hindi translation"
+            />
+          </Field>
+          <Field label="Simple Explanation">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={verseForm.explanation ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, explanation: e.target.value })}
+              placeholder="Optional simple explanation"
+            />
+          </Field>
+          <Field label="Life Lesson">
+            <textarea
+              className={`${inputCls} min-h-20`}
+              value={verseForm.lifeLesson ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, lifeLesson: e.target.value })}
+              placeholder="Optional life lesson"
+            />
+          </Field>
+          <Field label="Key Message">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={verseForm.keyMessage ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, keyMessage: e.target.value })}
+              placeholder="Optional key message"
+            />
+          </Field>
+          <Field label="Benefits">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={verseForm.benefits ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, benefits: e.target.value })}
+              placeholder="Optional benefits of chanting"
+            />
+          </Field>
+          <Field label="Image URL">
+            <input
+              className={inputCls}
+              value={verseForm.imageUrl ?? ''}
+              onChange={(e) => setVerseForm({ ...verseForm, imageUrl: e.target.value })}
+              placeholder="Optional image URL representing this verse"
             />
           </Field>
           <div className="flex justify-end gap-3 pt-2">
