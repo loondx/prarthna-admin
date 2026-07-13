@@ -128,7 +128,14 @@ export default function NotificationsPage() {
                   ))}
                 {filtered.map((n) => (
                   <tr key={n.id} className="border-b border-[#EFE6DD] hover:bg-[#FAF6F0]/30 transition-colors">
-                    <td className="py-4 font-semibold text-[#2D1E17]">{n.title}</td>
+                    <td className="py-4 font-semibold text-[#2D1E17]">
+                      <div>{n.title}</div>
+                      {n.description && (
+                        <div className="text-[10px] text-[#8C7E77] font-normal mt-0.5 max-w-sm break-words">
+                          {n.description}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-4 text-[#2D1E17]">{n.category}</td>
                     <td className="py-4 text-[#2D1E17]">{n.audience}</td>
                     <td className="py-4 text-[#2D1E17]">{n.sentAt}</td>
@@ -172,6 +179,14 @@ export default function NotificationsPage() {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="e.g. Morning Prayer Time 🙏"
+            />
+          </Field>
+          <Field label="Description">
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="e.g. Join the morning congregation for prayer..."
             />
           </Field>
           <div className="grid grid-cols-2 gap-4">

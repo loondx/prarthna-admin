@@ -233,7 +233,7 @@ interface StoreValue {
     createTemplate: (input: Omit<SankalpTemplate, 'id'>) => Promise<boolean>;
     updateTemplate: (id: string, input: Omit<SankalpTemplate, 'id'>) => Promise<boolean>;
     deleteTemplate: (id: string) => Promise<boolean>;
-    createNotification: (input: { title: string; category: string; audience: string; status: 'Sent' | 'Scheduled'; sentAt?: string }) => Promise<boolean>;
+    createNotification: (input: { title: string; category: string; audience: string; status: 'Sent' | 'Scheduled'; sentAt?: string; description?: string }) => Promise<boolean>;
     deleteNotification: (id: string) => Promise<boolean>;
     saveShloka: (input: ShlokaSchedule) => Promise<boolean>;
     getShlokas: () => Promise<ShlokaSchedule[]>;
