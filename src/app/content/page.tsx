@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useStore, Collection } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, inputCls } from '@/components/ui/kit';
 
-const EMPTY = { title: '', type: 'SCRIPTURE', description: '', category: '' };
+const EMPTY = { title: '', type: 'SCRIPTURE', description: '', category: '', bannerUrl: '' };
 const TYPES = ['SCRIPTURE', 'PRAYER'];
 const PRAYER_CATEGORIES = [
   'Morning Prayer',
@@ -49,7 +49,13 @@ export default function ContentLibraryPage() {
   };
 
   const openEdit = (c: Collection) => {
-    setForm({ title: c.title, type: c.type, description: c.description || '', category: c.category || '' });
+    setForm({
+      title: c.title,
+      type: c.type,
+      description: c.description || '',
+      category: c.category || '',
+      bannerUrl: c.bannerUrl || '',
+    });
     setEditing(c);
   };
 
@@ -70,6 +76,7 @@ export default function ContentLibraryPage() {
           type: form.type,
           description: form.description || undefined,
           category: form.type === 'PRAYER' ? form.category || undefined : undefined,
+          bannerUrl: form.bannerUrl.trim() || undefined,
         })
       : editing
         ? await actions.updateCollection(editing.id, {
@@ -77,6 +84,7 @@ export default function ContentLibraryPage() {
             type: form.type,
             description: form.description,
             category: form.type === 'PRAYER' ? form.category || undefined : undefined,
+            bannerUrl: form.bannerUrl.trim() || undefined,
           })
         : false;
     setSaving(false);
@@ -144,45 +152,69 @@ export default function ContentLibraryPage() {
         {filtered.map((c) => (
           <div
             key={c.id}
-            className="bg-white border border-[#EFE6DD] rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:border-[#8C5A3C]/40 hover:shadow-md hover:-translate-y-0.5 flex flex-col"
+            className="bg-white border border-[#EFE6DD] rounded-2xl relative overflow-hidden transition-all duration-300 hover:border-[#8C5A3C]/40 hover:shadow-md hover:-translate-y-0.5 flex flex-col"
           >
-            <button
-              onClick={() => toggleStatus(c)}
-              title="Toggle publish status"
-              className={`absolute top-4 right-4 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border transition-colors ${
-                c.status === 'Published'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-              }`}
-            >
-              {c.status}
-            </button>
-            <span className="text-3xl">📚</span>
-            <h2 className="text-lg font-bold text-[#2D1E17] mt-4">{c.title}</h2>
-            <p className="text-[#8C7E77] text-xs mt-1 flex-1">{c.lang || 'No description'}</p>
-
-            <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-[#EFE6DD]">
-              <div>
-                <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Chapters</span>
-                <p className="text-sm font-semibold text-[#2D1E17]">{c.nodes}</p>
+            {c.bannerUrl ? (
+              <div className="h-28 w-full relative overflow-hidden bg-[#F5ECE5]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.bannerUrl} alt={c.title} className="w-full h-full object-cover" />
+                <button
+                  onClick={() => toggleStatus(c)}
+                  title="Toggle publish status"
+                  className={`absolute top-4 right-4 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border transition-colors ${
+                    c.status === 'Published'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  {c.status}
+                </button>
               </div>
-              <div>
-                <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Type</span>
-                <p className="text-sm font-semibold text-[#2D1E17]">{c.units}</p>
+            ) : (
+              <div className="p-6 pb-0 flex justify-between items-start">
+                <span className="text-3xl">📚</span>
+                <button
+                  onClick={() => toggleStatus(c)}
+                  title="Toggle publish status"
+                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border transition-colors ${
+                    c.status === 'Published'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  {c.status}
+                </button>
               </div>
-            </div>
+            )}
 
-            <Link href={`/content/${c.id}`} className="block mt-6">
-              <GhostBtn className="w-full">Manage Chapters &amp; Verses</GhostBtn>
-            </Link>
-            <div className="flex gap-2 mt-2">
-              <GhostBtn className="flex-1" onClick={() => openEdit(c)}>Edit</GhostBtn>
-              <button
-                onClick={() => setDeleting(c)}
-                className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
-              >
-                Delete
-              </button>
+            <div className="p-6 flex-1 flex flex-col">
+              {!c.bannerUrl && <span className="text-3xl">📚</span>}
+              <h2 className="text-lg font-bold text-[#2D1E17] mt-2">{c.title}</h2>
+              <p className="text-[#8C7E77] text-xs mt-1 flex-1">{c.lang || 'No description'}</p>
+
+              <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-[#EFE6DD]">
+                <div>
+                  <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Chapters</span>
+                  <p className="text-sm font-semibold text-[#2D1E17]">{c.nodes}</p>
+                </div>
+                <div>
+                  <span className="text-[#8C7E77] text-[10px] uppercase font-bold tracking-wider">Type</span>
+                  <p className="text-sm font-semibold text-[#2D1E17]">{c.units}</p>
+                </div>
+              </div>
+
+              <Link href={`/content/${c.id}`} className="block mt-6">
+                <GhostBtn className="w-full">Manage Chapters &amp; Verses</GhostBtn>
+              </Link>
+              <div className="flex gap-2 mt-2">
+                <GhostBtn className="flex-1" onClick={() => openEdit(c)}>Edit</GhostBtn>
+                <button
+                  onClick={() => setDeleting(c)}
+                  className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -235,6 +267,14 @@ export default function ContentLibraryPage() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="e.g. The 700-verse Hindu scripture in 18 chapters."
+            />
+          </Field>
+          <Field label="Banner Image URL">
+            <input
+              className={inputCls}
+              value={form.bannerUrl}
+              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+              placeholder="e.g. https://images.unsplash.com/... or /assets/..."
             />
           </Field>
           <div className="flex justify-end gap-3 pt-2">

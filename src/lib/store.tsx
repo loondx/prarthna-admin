@@ -39,6 +39,7 @@ export interface Collection {
   description?: string;
   category?: string;
   type: string;
+  bannerUrl?: string;
 }
 
 export interface AudioTrack {
@@ -190,6 +191,7 @@ function mapCollection(c: any): Collection {
     description: c.description ?? '',
     category: c.category ?? '',
     type: c.type ?? 'SCRIPTURE',
+    bannerUrl: c.bannerUrl ?? '',
   };
 }
 
@@ -241,8 +243,8 @@ interface StoreValue {
   toast: (message: string, kind?: Toast['kind']) => void;
   refresh: () => Promise<void>;
   actions: {
-    createCollection: (input: { title: string; type: string; description?: string; category?: string }) => Promise<boolean>;
-    updateCollection: (id: string, input: { title?: string; type?: string; description?: string; category?: string }) => Promise<boolean>;
+    createCollection: (input: { title: string; type: string; description?: string; category?: string; bannerUrl?: string }) => Promise<boolean>;
+    updateCollection: (id: string, input: { title?: string; type?: string; description?: string; category?: string; bannerUrl?: string }) => Promise<boolean>;
     deleteCollection: (id: string) => Promise<boolean>;
     setCollectionStatus: (id: string, status: 'Published' | 'Draft') => Promise<boolean>;
     createFestival: (input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
