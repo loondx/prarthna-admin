@@ -92,6 +92,7 @@ export interface ShlokaSchedule {
   reference: string;
   sanskrit: string;
   translation: string;
+  translationHindi?: string;
 }
 
 export interface ContentUnitOption {
@@ -156,7 +157,7 @@ const EMPTY_DATA: AdminData = {
   festivals: [],
   notifications: [],
   audit: [],
-  shloka: { date: '', reference: '', sanskrit: '', translation: '' },
+  shloka: { date: '', reference: '', sanskrit: '', translation: '', translationHindi: '' },
   settings: { mediaPath: '/var/lib/prarthna/media', reminderMorning: '08:00', reminderEvening: '18:00' },
 };
 
@@ -314,6 +315,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               reference: shloka.reference,
               sanskrit: shloka.sanskrit,
               translation: shloka.translation,
+              translationHindi: shloka.translationHindi ?? '',
             }
           : prev.shloka,
         audit: audit.items.map(mapAudit),
@@ -392,6 +394,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         reference: s.reference,
         sanskrit: s.sanskrit,
         translation: s.translation,
+        translationHindi: s.translationHindi ?? '',
       }));
     },
     deleteShloka: (date) =>
