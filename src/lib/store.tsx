@@ -260,6 +260,7 @@ interface StoreValue {
     deleteShloka: (date: string) => Promise<boolean>;
     saveSettings: (value: AdminData['settings']) => Promise<boolean>;
     uploadAudio: (file: File, contentUnitId: string, title?: string) => Promise<boolean>;
+    uploadBanner: (file: File) => Promise<{ url: string } | null>;
     setAudioStatus: (id: string, status: string) => Promise<boolean>;
     deleteAudio: (id: string) => Promise<boolean>;
     listNodes: (collectionId: string) => Promise<ContentNodeOption[]>;
@@ -429,6 +430,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       form.append('contentUnitId', contentUnitId);
       if (title) form.append('title', title);
       return run(() => apiUpload('/content/media/upload', form), `Uploaded ${title ?? file.name}`);
+    },
+    uploadBanner: async (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const res = await apiUpload<{ url: string }>('/content/collections/upload-banner', form);
+        toast(`Uploaded banner ${file.name}`, 'success');
+        return res;
+      } catch (err: any) {
+        toast(err.message || 'Failed to upload banner image', 'error');
+        return null;
+      }
     },
     setAudioStatus: (id, status) =>
       run(() => apiPatch(`/content/media/${id}/status`, { status })),

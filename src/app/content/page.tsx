@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useStore, Collection } from '@/lib/store';
+import { MEDIA_BASE } from '@/lib/api';
 import { Field, GhostBtn, Modal, PrimaryBtn, SearchInput, inputCls } from '@/components/ui/kit';
 
 const EMPTY = { title: '', type: 'SCRIPTURE', description: '', category: '', bannerUrl: '' };
@@ -157,7 +158,11 @@ export default function ContentLibraryPage() {
             {c.bannerUrl ? (
               <div className="h-28 w-full relative overflow-hidden bg-[#F5ECE5]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.bannerUrl} alt={c.title} className="w-full h-full object-cover" />
+                <img
+                  src={c.bannerUrl.startsWith('http') ? c.bannerUrl : `${MEDIA_BASE}${c.bannerUrl}`}
+                  alt={c.title}
+                  className="w-full h-full object-cover"
+                />
                 <button
                   onClick={() => toggleStatus(c)}
                   title="Toggle publish status"
@@ -270,12 +275,31 @@ export default function ContentLibraryPage() {
             />
           </Field>
           <Field label="Banner Image URL">
-            <input
-              className={inputCls}
-              value={form.bannerUrl}
-              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-              placeholder="e.g. https://images.unsplash.com/... or /assets/..."
-            />
+            <div className="flex gap-2">
+              <input
+                className={`${inputCls} flex-1`}
+                value={form.bannerUrl}
+                onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+                placeholder="e.g. https://images.unsplash.com/... or /assets/..."
+              />
+              <label className="cursor-pointer bg-[#F5ECE5] text-[#8C5A3C] border border-[#EFE6DD] hover:bg-[#8C5A3C]/10 text-xs px-3 py-2 rounded-xl flex items-center font-semibold transition-all select-none">
+                <span>Upload</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const res = await actions.uploadBanner(file);
+                      if (res && res.url) {
+                        setForm((prev) => ({ ...prev, bannerUrl: res.url }));
+                      }
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </Field>
           <div className="flex justify-end gap-3 pt-2">
             <GhostBtn onClick={closeForm}>Cancel</GhostBtn>
