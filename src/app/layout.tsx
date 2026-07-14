@@ -6,6 +6,9 @@ export const metadata = {
   title: 'Prarthna Admin Dashboard',
   description:
     'Manage spiritual content, media processing, audio tracks, and habits for the Prarthna application.',
+  icons: {
+    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕉️</text></svg>',
+  },
 };
 
 export default function RootLayout({

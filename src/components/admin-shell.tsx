@@ -114,13 +114,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? 'bg-[#8C5A3C] text-white shadow-md'
                       : 'text-[#D9CFC7]/80 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-amber-300' : 'bg-white/20'}`} />
                   {item.name}
                 </Link>
               );
