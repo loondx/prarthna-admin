@@ -152,9 +152,9 @@ export default function FestivalsPage() {
               <tbody>
                 {list.map((f) => (
                   <tr key={f.id} className="border-b border-[#EFE6DD] hover:bg-[#FAF6F0]/30 transition-colors">
-                    <td className="py-4 font-semibold text-[#2D1E17]">
-                      <span className="mr-2">{f.icon}</span>
-                      {f.name}
+                    <td className="py-4 font-semibold text-[#2D1E17] flex items-center gap-2">
+                      <CalendarIcon />
+                      <span>{f.name}</span>
                     </td>
                     <td className="py-4 text-[#2D1E17]">{f.date}</td>
                     <td className="py-4 text-[#2D1E17]">{f.category}</td>
