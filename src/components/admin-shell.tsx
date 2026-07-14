@@ -72,21 +72,21 @@ function AdminHeader() {
 interface NavigationItem {
   name: string;
   href: string;
-  icon: string;
 }
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-  { name: 'Content Library', href: '/content', icon: '📚' },
-  { name: 'Manage Prayers', href: '/prayers', icon: '🙏' },
-  { name: 'Audio Studio', href: '/audio', icon: '🎙️' },
-  { name: 'Daily Shloka', href: '/shloka', icon: '🕉️' },
-  { name: 'Sankalp Templates', href: '/sankalp', icon: '📝' },
-  { name: 'Festivals', href: '/festivals', icon: '🪔' },
-  { name: 'Notifications', href: '/notifications', icon: '🔔' },
-  { name: 'Admin Users', href: '/admins', icon: '👤' },
-  { name: 'Settings', href: '/settings', icon: '⚙️' },
-  { name: 'Audit Logs', href: '/audit', icon: '📜' },
+  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Content Library', href: '/content' },
+  { name: 'Manage Prayers', href: '/prayers' },
+  { name: 'Audio Studio', href: '/audio' },
+  { name: 'Daily Shloka', href: '/shloka' },
+  { name: 'Sankalp Templates', href: '/sankalp' },
+  { name: 'Festivals', href: '/festivals' },
+  { name: 'Notifications', href: '/notifications' },
+  { name: 'App Users', href: '/users' },
+  { name: 'Admin Users', href: '/admins' },
+  { name: 'Settings', href: '/settings' },
+  { name: 'Audit Logs', href: '/audit' },
 ];
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
@@ -98,7 +98,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       <aside className="w-64 border-r border-[#EFE6DD] bg-[#2D1E17] text-white flex flex-col justify-between shadow-lg shrink-0">
         <div>
           <div className="h-16 flex items-center px-6 border-b border-white/10 gap-3">
-            <span className="text-2xl">🕉️</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-400 to-[#D99B26] block shadow-md animate-pulse shrink-0" />
             <div>
               <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#D99B26] tracking-wider">
                 PRARTHNA
@@ -120,7 +120,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       : 'text-[#D9CFC7]/80 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-amber-300' : 'bg-white/20'}`} />
                   {item.name}
                 </Link>
               );

@@ -156,6 +156,18 @@ export interface Toast {
   kind: 'success' | 'error' | 'info';
 }
 
+export interface AppUser {
+  id: string;
+  phone?: string;
+  email?: string;
+  name?: string;
+  city?: string;
+  language?: string;
+  streak: number;
+  points: number;
+  createdAt: string;
+}
+
 interface AdminData {
   collections: Collection[];
   audio: AudioTrack[];
@@ -165,6 +177,7 @@ interface AdminData {
   audit: AuditEntry[];
   shloka: ShlokaSchedule;
   settings: { mediaPath: string; reminderMorning: string; reminderEvening: string };
+  appUsers: AppUser[];
 }
 
 const EMPTY_DATA: AdminData = {
@@ -176,6 +189,7 @@ const EMPTY_DATA: AdminData = {
   audit: [],
   shloka: { date: '', reference: '', sanskrit: '', translation: '', translationHindi: '' },
   settings: { mediaPath: '/var/lib/prarthna/media', reminderMorning: '08:00', reminderEvening: '18:00' },
+  appUsers: [],
 };
 
 // ── Backend → view-model mappers ──────────────────────────────────
@@ -305,14 +319,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         apiGet<any[]>('/templates'),
         apiGet<any | null>('/shloka/today'),
       ]);
-      const [audit, notifications, media, settings] = authed
+      const [audit, notifications, media, settings, appUsers] = authed
         ? await Promise.all([
             apiGet<{ items: any[] }>('/audit').catch(() => ({ items: [] })),
             apiGet<any[]>('/notifications').catch(() => []),
             apiGet<any[]>('/content/media').catch(() => []),
             apiGet<Record<string, any>>('/settings').catch(() => ({} as Record<string, any>)),
+            apiGet<any[]>('/admin/app-users').catch(() => []),
           ])
-        : [{ items: [] } as { items: any[] }, [] as any[], [] as any[], {} as Record<string, any>];
+        : [{ items: [] } as { items: any[] }, [] as any[], [] as any[], {} as Record<string, any>, [] as any[]];
 
       setData((prev) => ({
         collections: collections.map(mapCollection),
@@ -350,6 +365,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           reminderMorning: settings.reminderMorning ?? prev.settings.reminderMorning,
           reminderEvening: settings.reminderEvening ?? prev.settings.reminderEvening,
         },
+        appUsers: appUsers.map((u: any) => ({
+          id: u.id,
+          phone: u.phone ?? undefined,
+          email: u.email ?? undefined,
+          name: u.name ?? 'Guest User',
+          city: u.city ?? undefined,
+          language: u.language ?? 'en',
+          streak: u.streak ?? 0,
+          points: u.points ?? 0,
+          createdAt: new Date(u.createdAt).toLocaleDateString(),
+        })),
       }));
       setConnected(true);
     } catch (e) {
