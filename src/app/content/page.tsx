@@ -24,6 +24,23 @@ const PRAYER_CATEGORIES = [
   'Others'
 ];
 
+const BookIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-8 h-8 text-[#8C5A3C]"
+  >
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+    <path d="M6 6h10" />
+    <path d="M6 10h10" />
+  </svg>
+);
+
 export default function ContentLibraryPage() {
   const { data, actions, toast, apiLoading } = useStore();
   const [query, setQuery] = useState('');
@@ -177,7 +194,7 @@ export default function ContentLibraryPage() {
               </div>
             ) : (
               <div className="p-6 pb-0 flex justify-between items-start">
-                <span className="text-3xl">📚</span>
+                <BookIcon />
                 <button
                   onClick={() => toggleStatus(c)}
                   title="Toggle publish status"
@@ -193,7 +210,7 @@ export default function ContentLibraryPage() {
             )}
 
             <div className="p-6 flex-1 flex flex-col">
-              {!c.bannerUrl && <span className="text-3xl">📚</span>}
+              {!c.bannerUrl && <div className="mb-2"><BookIcon /></div>}
               <h2 className="text-lg font-bold text-[#2D1E17] mt-2">{c.title}</h2>
               <p className="text-[#8C7E77] text-xs mt-1 flex-1">{c.lang || 'No description'}</p>
 

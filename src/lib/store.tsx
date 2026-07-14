@@ -250,6 +250,7 @@ interface StoreValue {
     createFestival: (input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
     updateFestival: (id: string, input: Omit<FestivalItem, 'id'>) => Promise<boolean>;
     deleteFestival: (id: string) => Promise<boolean>;
+    syncFestivals: () => Promise<boolean>;
     createTemplate: (input: Omit<SankalpTemplate, 'id'>) => Promise<boolean>;
     updateTemplate: (id: string, input: Omit<SankalpTemplate, 'id'>) => Promise<boolean>;
     deleteTemplate: (id: string) => Promise<boolean>;
@@ -396,6 +397,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateFestival: (id, input) =>
       run(() => apiPatch(`/festivals/${id}`, input), `Festival "${input.name}" updated`),
     deleteFestival: (id) => run(() => apiDelete(`/festivals/${id}`), 'Festival deleted'),
+    syncFestivals: async () => {
+      try {
+        const res = await apiPost<{ added: number; skipped: number }>('/festivals/sync');
+        toast(`Synced Hindu Calendar! Added ${res.added} new festivals, skipped ${res.skipped} for duplicates.`, 'success');
+        refresh();
+        return true;
+      } catch (err: any) {
+        toast(err.message || 'Failed to sync Hindu calendar', 'error');
+        return false;
+      }
+    },
     createTemplate: (input) =>
       run(() => apiPost('/templates', input), `Template "${input.title}" created`),
     updateTemplate: (id, input) =>
