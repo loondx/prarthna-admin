@@ -10,6 +10,7 @@ import {
   VerseInput,
 } from '@/lib/store';
 import { Field, GhostBtn, Modal, PrimaryBtn, inputCls } from '@/components/ui/kit';
+import { MEDIA_BASE } from '@/lib/api';
 
 const EMPTY_VERSE: VerseInput = {
   verseNumber: '',
@@ -729,6 +730,51 @@ export default function ChapterManagerPage() {
               />
             </Field>
           </div>
+          {verseModal && verseModal !== 'create' && (
+            <Field label="Audio Track (.mp3, .wav, .aac, .ogg)">
+              <div className="flex items-center gap-4 bg-[#FAF6F0] p-3 rounded-xl border border-[#EFE6DD]">
+                {verseModal.audioUrl ? (
+                  <div className="flex-1 flex flex-col gap-2">
+                    <span className="text-xs text-[#8C7E77] truncate max-w-xs font-mono">
+                      {verseModal.audioUrl.split('/').pop()}
+                    </span>
+                    <audio
+                      src={verseModal.audioUrl.startsWith('http') ? verseModal.audioUrl : `${MEDIA_BASE}${verseModal.audioUrl}`}
+                      controls
+                      className="h-8 max-w-full"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-[#8C7E77] flex-1">
+                    No audio uploaded for this verse yet.
+                  </span>
+                )}
+                <input
+                  type="file"
+                  id="verse-audio-file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const success = await actions.uploadAudio(file, verseModal.id);
+                      if (success) {
+                        loadVerses(expandedId!);
+                        setVerseModal(null);
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('verse-audio-file')?.click()}
+                  className="text-xs font-bold text-[#8C5A3C] border border-[#8C5A3C]/30 hover:bg-[#8C5A3C]/10 px-3 py-1.5 rounded-lg shrink-0"
+                >
+                  {verseModal.audioUrl ? 'Replace' : 'Upload'}
+                </button>
+              </div>
+            </Field>
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t border-[#EFE6DD] mt-6">
             <GhostBtn onClick={() => setVerseModal(null)}>Cancel</GhostBtn>
             <PrimaryBtn onClick={saveVerse}>
