@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -69,6 +69,23 @@ export default function ChapterManagerPage() {
   const [verseModal, setVerseModal] = useState<'create' | VerseUnit | null>(null);
   const [verseForm, setVerseForm] = useState<VerseInput>(EMPTY_VERSE);
   const [deletingVerse, setDeletingVerse] = useState<VerseUnit | null>(null);
+
+  // Audio Uploading state (maps verseId to uploading status)
+  const [uploadingMap, setUploadingMap] = useState<Record<string, boolean>>({});
+  const fileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const handleAudioUpload = async (verseId: string, verseNumber: string, file: File) => {
+    if (!file) return;
+    setUploadingMap(prev => ({ ...prev, [verseId]: true }));
+    const title = `${collection?.title ?? 'Scripture'} - ${verseNumber}`;
+    const ok = await actions.uploadAudio(file, verseId, title);
+    setUploadingMap(prev => ({ ...prev, [verseId]: false }));
+    if (ok) {
+      if (expandedId) {
+        loadVerses(expandedId);
+      }
+    }
+  };
 
   const loadChapters = useCallback(async () => {
     setLoading(true);
@@ -350,9 +367,11 @@ export default function ChapterManagerPage() {
                     <table className="w-full text-left border-collapse text-xs text-[#8C7E77]">
                       <thead>
                         <tr className="border-b border-[#EFE6DD]">
-                          {['Ref', 'Sanskrit', 'English', 'Actions'].map((h) => (
-                            <th key={h} className="pb-2 font-bold uppercase tracking-wider">{h}</th>
-                          ))}
+                          <th className="pb-2 font-bold uppercase tracking-wider">Ref</th>
+                          <th className="pb-2 font-bold uppercase tracking-wider">Sanskrit</th>
+                          <th className="pb-2 font-bold uppercase tracking-wider">English</th>
+                          <th className="pb-2 font-bold uppercase tracking-wider">Recitation Audio</th>
+                          <th className="pb-2 font-bold uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -361,18 +380,50 @@ export default function ChapterManagerPage() {
                             <td className="py-3 font-semibold text-[#2D1E17] whitespace-nowrap pr-4">
                               {v.verseNumber}
                             </td>
-                            <td className="py-3 text-[#2D1E17] pr-4 max-w-[16rem]">
+                            <td className="py-3 text-[#2D1E17] pr-4 max-w-[14rem]">
                               <span className="line-clamp-2">{v.contentSanskrit}</span>
                             </td>
-                            <td className="py-3 pr-4 max-w-[18rem]">
+                            <td className="py-3 pr-4 max-w-[14rem]">
                               <span className="line-clamp-2">{v.contentEnglish}</span>
                             </td>
+                            <td className="py-3 pr-4">
+                              {v.audioUrl ? (
+                                <audio
+                                  controls
+                                  preload="none"
+                                  src={v.audioUrl.startsWith('http') ? v.audioUrl : `${MEDIA_BASE}${v.audioUrl}`}
+                                  className="h-8 w-44 max-w-full"
+                                />
+                              ) : (
+                                <span className="text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 text-[10px] font-semibold">
+                                  No Audio
+                                </span>
+                              )}
+                            </td>
                             <td className="py-3 whitespace-nowrap">
-                              <div className="flex gap-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  ref={el => { fileInputsRef.current[v.id] = el; }}
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleAudioUpload(v.id, v.verseNumber, file);
+                                  }}
+                                />
+                                <button
+                                  onClick={() => fileInputsRef.current[v.id]?.click()}
+                                  disabled={uploadingMap[v.id]}
+                                  className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 font-semibold text-xs px-2.5 py-1.5 rounded-lg transition-all"
+                                >
+                                  {uploadingMap[v.id] ? 'Uploading…' : '🎙️ Upload Audio'}
+                                </button>
+                                
                                 <GhostBtn onClick={() => openEditVerse(v)}>Edit</GhostBtn>
                                 <button
                                   onClick={() => setDeletingVerse(v)}
-                                  className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-3 py-2 rounded-lg transition-all"
+                                  className="text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 font-semibold text-xs px-2.5 py-1.5 rounded-lg transition-all"
                                 >
                                   Delete
                                 </button>
